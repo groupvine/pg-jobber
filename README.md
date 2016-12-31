@@ -25,7 +25,7 @@ var pgsql   = {adr : 10.0.0.11, port : 5432};
 
 var jobber  = require('pg-jobber')(myId, pgsql);
 
-jobber.request("calculator", ['add', 5, ['multiply', 2, 3]]).then(instr, results => {
+jobber.request("calculator", [5, '+', [2, '*', 3]]).then(instr, results => {
     console.info(`5 + (2 x 3) = ${results}`);
 }).catch(err) {
     console.error("Calculator job request failed with error:", err);
@@ -42,20 +42,15 @@ var jobber  = require('pg-jobber')(myId, pgsql);
 
 jobber.handle('calculator', instr => {
 
-    function calculate(operation:string, operand1:any, operand2:any) {
-        if (Array.isArray(operand1)) { operand1 = calculate(operand1); }
-        if (Array.isArray(operand2)) { operand2 = calculate(operand2); }
+    function calculate(num1:any, op:string, num2:any) {
+        if (Array.isArray(num1)) { num1 = calculate(num1); }
+        if (Array.isArray(num2)) { num2 = calculate(num2); }
 
-        switch(operation) {
-        case 'multiply':
-            return operand1 * operand2;
-        case 'divide':
-            return operand1 / operand2;
-        case 'add':
-            return operand1 + operand2;
-        case 'subtract':
-            return operand1 - operand2;
+        if (typeof num1 !== 'number' || typeof num2 !== 'number' || !op.match(/[\+\-\*\/]/)) {
+            throw `Invalid operation: ${num1} ${op} ${num2}`
         }
+
+        return eval(num1 + op + num2);
     }
 
     return calculate(instr);
