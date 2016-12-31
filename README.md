@@ -14,16 +14,19 @@ designed for clusters of up to about 5-10 workers per job type.
 * Supports differing job priorities, reporting individual job
   progress, and tracking job processing performance per job type.
 
+Note that this module will create a "pg_jobber_jobs" table in the associated 
+PostgreSQL database, if not already present.
 
 ## Example Usage
 
 ### Job Requester
 
 ```
-var myId    = "server-10.0.0.17";
-var pgsql   = {adr : 10.0.0.11, port : 5432};
+var myId     = "server-10.0.0.17";
+var pgconfig = {host : '10.0.0.11', port : 5432, database : 'mydb', 
+                user : 'postgres', password : 'password'};
 
-var jobber  = require('pg-jobber')(myId, pgsql);
+var jobber   = require('pg-jobber')(myId, pgconfig);
 
 jobber.request("calculator", [5, '+', [2, '*', 3]]).then(instr, results => {
     console.info(`5 + (2 x 3) = ${results}`);
@@ -35,10 +38,11 @@ jobber.request("calculator", [5, '+', [2, '*', 3]]).then(instr, results => {
 ### Job Worker
 
 ```
-var myId    = "server-10.0.0.42";
-var pgsql   = {adr : 10.0.0.11, port : 5432};
+var myId     = "server-10.0.0.42";
+var pgconfig = {host : '10.0.0.11', port : 5432, database : 'mydb', 
+                user : 'postgres', password : 'password'};
 
-var jobber  = require('pg-jobber')(myId, pgsql);
+var jobber   = require('pg-jobber')(myId, pgconfig);
 
 jobber.handle('calculator', instr => {
 

@@ -1,0 +1,28 @@
+{
+  "name": "pg-jobber",
+  "version": "1.0.0",
+  "description": "PostreSQL-based Job Manager",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davebeyer/pg-jobber.git"
+  },
+  "keywords": [
+    "Job",
+    "Scheduler",
+    "Postgres",
+    "PostgreSQL"
+  ],
+  "author": "Dave Beyer",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/davebeyer/pg-jobber/issues"
+  },
+  "homepage": "https://github.com/davebeyer/pg-jobber#readme",
+  "dependencies": {
+    "pg-promise": "^5.5.0"
+  }
+}
