@@ -27,7 +27,7 @@ class Jobber {
             // Check whether jobs table exists, and if not, create it
             let db = pgp(_this.pgConfig);
 
-            db.one("SELECT to_regclass('pg_jobber_jobs')").then(results => {
+            db.one("SELECT to_regclass('pgjobber_jobs')").then(results => {
                 if (results.to_regclass !== null) {
                     // Already exists, so we're done
                     return Promise.resolve(false);
@@ -35,7 +35,7 @@ class Jobber {
                 return _this.initDB(db);
             }).then( created => {
                 if (created) { 
-                    _this.logInfo("Jobs table (pg_jobber_jobs) created"); 
+                    _this.logInfo("Jobs table (pgjobber_jobs) created"); 
                 }
                 resolve();
             }).catch(err => {

@@ -1,4 +1,4 @@
-# PostreSQL-based Job Manager (pg-jobber)
+# Postres-based Job Manager (pg-jobber)
 
 A simple, responsive job queue manager based on PostgreSQL 9.6+,
 designed for clusters of up to about 5-10 workers per job type.
@@ -11,10 +11,10 @@ designed for clusters of up to about 5-10 workers per job type.
 * Takes advantage of "SKIP LOCKED" and "LISTEN/NOTIFY" features of
   Postgres 9.6 for robust and responsive performance.
 
-* Supports differing job priorities, reporting individual job
-  progress, and tracking job processing performance per job type.
+* Supports an arbitrary number of job types and worker pools,  differing 
+  job priorities, and tracking of job processing performance.
 
-Note that this module will create a "pg_jobber_jobs" table in the associated 
+Note that this module will create a "pgjobber_jobs" table in the associated 
 PostgreSQL database, if not already present.
 
 ## Example Usage

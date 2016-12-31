@@ -1,5 +1,5 @@
 export var jobTableDef = `
-    CREATE TABLE pg_jobber_jobs (
+    CREATE TABLE pgjobber_jobs (
         job_id    INTEGER PRIMARY KEY,
 
         requester VARCHAR(64) NOT NULL, -- ids requesters channel, notified when done
@@ -11,7 +11,6 @@ export var jobTableDef = `
 
         job_state INTEGER NOT NULL,     -- 0 pending, 1 in process, 2 completed
         worker    VARCHAR(64),          -- worker ID, for server-restart job recovery
-        progress  INTEGER,              -- percent, 0 to 100 
         failures  INTEGER DEFAULT 0,    -- number of times job processing failed
 
         requested TIMESTAMP,            -- when requested
@@ -21,12 +20,12 @@ export var jobTableDef = `
 `;
 
 export var jobIndexesDefs = [
-    "CREATE INDEX job_type_idx  ON pg_jobber_jobs (job_type);",
-    "CREATE INDEX requester_idx ON pg_jobber_jobs (requester);",
-    "CREATE INDEX priority_idx  ON pg_jobber_jobs (priority);",
-    "CREATE INDEX state_idx     ON pg_jobber_jobs (job_state);"
+    "CREATE INDEX job_type_idx  ON pgjobber_jobs (job_type);",
+    "CREATE INDEX requester_idx ON pgjobber_jobs (requester);",
+    "CREATE INDEX priority_idx  ON pgjobber_jobs (priority);",
+    "CREATE INDEX state_idx     ON pgjobber_jobs (job_state);"
 ];
 
 export var GetAllJobs = `
-    SELECT * FROM pg_jobber_jobs;
+    SELECT * FROM pgjobber_jobs;
 `;
