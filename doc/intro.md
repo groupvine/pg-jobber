@@ -40,7 +40,7 @@ Issuing a job request:
 ```
 jobber.request("calculator", [5, '+', [2, '*', 3]]).then(response => {
     console.info(`5 + (2 x 3) = ${response.results}`);
-}).catch(err) {
+}).catch(err => {
     console.error("Calculator job request failed with error:", err);
 });
 ```
