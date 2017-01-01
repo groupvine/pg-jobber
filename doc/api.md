@@ -64,7 +64,7 @@ Register a handler for a particular job type
 | Param | Type | Description |
 | --- | --- | --- |
 | jobType | <code>string</code> | String identifying the job type to be handled |
-| handlerCb | <code>handlerCB</code> |  |
+| handlerCb | <code>handlerCB</code> | Callback to job handler function |
 
 <a name="Jobber+handle+handlerCB(instr)"></a>
 

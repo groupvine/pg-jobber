@@ -110,7 +110,7 @@ class Jobber {
      * @method Jobber#handle
      * 
      * @param {string} jobType - String identifying the job type to be handled
-     * @param {handlerCB} handlerCb
+     * @param {handlerCB} handlerCb - Callback to job handler function
      *
      * @returns {void}
      */
