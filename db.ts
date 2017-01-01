@@ -1,3 +1,5 @@
+import {JobState} from './index';
+
 export var jobTableTmpl = `
     CREATE TABLE pgjobber_jobs (
         job_id    SERIAL PRIMARY KEY,
@@ -26,10 +28,11 @@ export var jobIndexesTmpls = [
     "CREATE INDEX state_idx     ON pgjobber_jobs (job_state);"
 ];
 
+// JobState.New
 export var newJobTmpl = "  \
     INSERT INTO pgjobber_jobs \
               (  requester, job_type, priority, instrs, job_state, requested) \
-    VALUES    (${requester}, ${jobType}, ${priority}, ${instrs}, 0, ${now})  \
+    VALUES    (${requester}, ${jobType}, ${priority}, ${instrs}::jsonb, 0, ${now})  \
     RETURNING job_id; \
 ";
 
@@ -49,6 +52,7 @@ export var regListenerTmpl = " \
 // "SKIP LOCKED" ensures that a server skips over any rows in the 
 // process of being claimed by another worker.
 
+// JobState.New -> JobState.Processing
 export var claimJobTmpl = "            \
     UPDATE pgjobber_jobs               \
     SET    job_state = 1,              \
@@ -66,15 +70,23 @@ export var claimJobTmpl = "            \
     RETURNING job_id, instrs, requester;       \
 ";
 
+// JobState.Completed
 export var completeJobTmpl = "         \
     UPDATE pgjobber_jobs               \
     SET    job_state = 2,              \
            completed = ${now},         \
-           results   = ${results}      \
+           results   = ${results}::jsonb  \
     WHERE  job_id = ${jobId};          \
 ";
 
 export var removeJobTmpl = "           \
      DELETE FROM pgjobber_jobs         \
      WHERE  job_id = ${jobId};         \
+";
+
+// JobState.Archived
+export var archiveJobTmpl = "           \
+    UPDATE pgjobber_jobs               \
+    SET    job_state = 3               \
+    WHERE  job_id = ${jobId};          \
 ";

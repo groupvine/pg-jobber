@@ -106,7 +106,7 @@ Initialize jobber (if not already done so in construction).
 | --- | --- | --- |
 | serverId | <code>string</code> | Unique string identifying this server |
 | pgConfig | <code>Object</code> | Postgres configuration, must include     properties: host {string}, port {number}, database {string},     user {string}, and password {string}. |
-| [options] | <code>Object</code> | Optional configuration info, with     properties: logger {Bunyan compatible logger} |
+| [options] | <code>Object</code> | Optional configuration info, with     properties: logger {Bunyan compatible logger};     archiveJobs {boolean} to archive rather than delete jobs     from queue when done. |
 
 <a name="Jobber+request"></a>
 

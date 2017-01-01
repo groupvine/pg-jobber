@@ -1,5 +1,12 @@
 var pgp = require('pg-promise')();
 
+export enum JobState {
+    New        = 0,
+    Processing = 1,
+    Completed  = 2,
+    Archived   = 3
+};
+
 declare var Promise:any;
 
 import {jobTableTmpl,
@@ -9,6 +16,7 @@ import {jobTableTmpl,
         regListenerTmpl,
         claimJobTmpl,
         completeJobTmpl,
+        archiveJobTmpl,
         removeJobTmpl}     from './db';
 
 class Jobber {
@@ -63,7 +71,9 @@ class Jobber {
      *     user {string}, and password {string}.
      *
      * @param {Object=} options  - Optional configuration info, with 
-     *     properties: logger {Bunyan compatible logger}
+     *     properties: logger {Bunyan compatible logger}; 
+     *     archiveJobs {boolean} to archive rather than delete jobs
+     *     from queue when done.
      *
      * @returns {void}
      */
@@ -162,9 +172,12 @@ class Jobber {
                     jobType    : jobType 
                 };
 
+                // always stringify payload, so can always JSON.parse()
+                // on reception, regardless of whether original payload
+                // is already a string or not.
                 return self.db.none(sendNotifyTmpl, {
                     channel : self.jobType2Ch(jobType),
-                    info    : jobInfo
+                    info    : JSON.stringify(jobInfo)   
                 });
 
             }).then( () => {
@@ -308,13 +321,13 @@ class Jobber {
             let jobInfo = {
                 notifyType : 'doneJob',
                 jobId      : jobData.job_id,
-                instrs     : JSON.stringify(jobData.instrs),
-                results    : JSON.stringify(jobData.results)
+                instrs     : jobData.instrs,
+                results    : jobData.results
             };
 
             return _this.db.none(sendNotifyTmpl, {
                 channel : _this.serverId2Ch(jobData.requester),
-                info    : jobInfo
+                info    : JSON.stringify(jobInfo)
             });
 
         }).then( () => {
@@ -341,18 +354,28 @@ class Jobber {
         let _this   = this;
 
         if (! this.pendingJobs[notifyData.jobId]) {
-            this.logError(`Received completed job notification for jobId ${notifyData.jobId} that is not pending for this server`);
+            this.logError(`Received completed job notification for jobId ${notifyData.jobId} that is not pending for this server (perhaps already serviced, or enqueued prior to a server restart?)`);
         } else {
             // Call the associated resolve() method
             this.pendingJobs[notifyData.jobId].resolve({ 
                 instrs  : notifyData.instrs, 
                 results : notifyData.results
             });
+            
+            // Remove from pending jobs (so can't resolve again)
+            delete this.pendingJobs[notifyData.jobId];
         }
 
         // Delete job from job queue
 
-        this.db.none(removeJobTmpl, {
+        let tmpl;
+        if (this.options.archiveJobs) {
+            tmpl = archiveJobTmpl;
+        } else {
+            tmpl = removeJobTmpl;
+        }
+
+        this.db.none(tmpl, {
             jobId : notifyData.jobId
         });
     }
