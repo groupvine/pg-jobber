@@ -8,7 +8,7 @@
     * [.init(serverId, pgConfig, [options])](#Jobber+init) ⇒ <code>void</code>
     * [.request(jobType, instr)](#Jobber+request) ⇒ <code>Promise.&lt;Object&gt;</code>
     * [.handle(jobType, handlerCb)](#Jobber+handle) ⇒ <code>void</code>
-        * [.handlerCB](#Jobber+handle+handlerCB(instrs)) ⇒ <code>Object</code>
+        * [.handlerCB](#Jobber+handle+handlerCB(instrs)) ⇒ <code>any</code> &#124; <code>Promise</code>
 
 <a name="new_Jobber_new"></a>
 
@@ -30,7 +30,7 @@ with this info).
 <a name="Jobber+init"></a>
 
 ### jobber.init(serverId, pgConfig, [options]) ⇒ <code>void</code>
-Initialize jobber (if not already done so in construction).
+Initialize jobber (if not already done in construction).
 
 **Kind**: instance method of <code>[Jobber](#Jobber)</code>  
 
@@ -47,7 +47,7 @@ Request a new job
 
 **Kind**: instance method of <code>[Jobber](#Jobber)</code>  
 **Returns**: <code>Promise.&lt;Object&gt;</code> - A promise that resolves with an object
-    with 'results' and original 'instrs'  
+    with 'results' and original 'instrs' properties  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -68,11 +68,11 @@ Register a handler for a particular job type
 
 <a name="Jobber+handle+handlerCB(instrs)"></a>
 
-#### handle.handlerCB ⇒ <code>Object</code>
+#### handle.handlerCB ⇒ <code>any</code> &#124; <code>Promise</code>
 Handler callback
 
 **Kind**: instance typedef of <code>[handle](#Jobber+handle)</code>  
-**Returns**: <code>Object</code> - Job results or a Promise for results  
+**Returns**: <code>any</code> &#124; <code>Promise</code> - The job results or a Promise for the results  
 
 | Param | Type | Description |
 | --- | --- | --- |

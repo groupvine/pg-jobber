@@ -60,7 +60,7 @@ class Jobber {
     }
 
     /**
-     * Initialize jobber (if not already done so in construction).
+     * Initialize jobber (if not already done in construction).
      *
      * @method Jobber#init
      *
@@ -147,7 +147,7 @@ class Jobber {
      * @param {Object} instr   - Job-specific instructions
      *
      * @returns {Promise.<Object>}  A promise that resolves with an object
-     *     with 'results' and original 'instrs'
+     *     with 'results' and original 'instrs' properties
      */
 
     public request(jobType:string, instrs:any, priority?:number) {
@@ -196,7 +196,7 @@ class Jobber {
      * @callback Jobber#handle#handlerCB(instrs)
      *
      * @param   {Object} instrs - Requested job instructions
-     * @returns {Object} Job results or a Promise for results
+     * @returns {any|Promise} The job results or a Promise for the results
      */
 
     /**
