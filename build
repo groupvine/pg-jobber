@@ -1,7 +1,0 @@
-./node_modules/.bin/tsc *.ts --sourceMap 
-jsdoc2md *.js --no-cache > doc/api.md
-cat doc/intro.md doc/api.md > README.md
-
-
-
-

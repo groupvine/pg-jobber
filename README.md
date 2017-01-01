@@ -1,7 +1,7 @@
 # Postres-based Job Manager (pg-jobber)
 
 A simple, responsive job queue manager based on PostgreSQL 9.6+,
-designed for clusters of up to about 5-10 workers per job type.
+designed for clusters of up to about a dozen workers per job type.
 
 * Simple, promise-based API for job requesters and handler interface
   for workers.
@@ -38,8 +38,8 @@ var jobber   = require('pg-jobber')(myId, pgconfig);
 Issuing a job request:
 
 ```
-jobber.request("calculator", [5, '+', [2, '*', 3]]).then(instr, results => {
-    console.info(`5 + (2 x 3) = ${results}`);
+jobber.request("calculator", [5, '+', [2, '*', 3]]).then(response => {
+    console.info(`5 + (2 x 3) = ${response.results}`);
 }).catch(err) {
     console.error("Calculator job request failed with error:", err);
 });
@@ -50,7 +50,7 @@ jobber.request("calculator", [5, '+', [2, '*', 3]]).then(instr, results => {
 Registering for a job type and processing jobs:
 
 ```
-jobber.handle('calculator', instr => {
+jobber.handle('calculator', instrs => {
 
     function calculate(num1:any, op:string, num2:any) {
         if (Array.isArray(num1)) { num1 = calculate(num1); }
@@ -63,7 +63,7 @@ jobber.handle('calculator', instr => {
         return eval(num1 + op + num2);
     }
 
-    return calculate(instr);
+    return calculate(instrs);
 });
 ```
 <a name="Jobber"></a>
@@ -74,9 +74,9 @@ jobber.handle('calculator', instr => {
 * [Jobber](#Jobber)
     * [new Jobber([serverId], [pgConfig], [options])](#new_Jobber_new)
     * [.init(serverId, pgConfig, [options])](#Jobber+init) ⇒ <code>void</code>
-    * [.request(jobType, instr)](#Jobber+request) ⇒ <code>Promise.&lt;Object, Object&gt;</code>
+    * [.request(jobType, instr)](#Jobber+request) ⇒ <code>Promise.&lt;Object&gt;</code>
     * [.handle(jobType, handlerCb)](#Jobber+handle) ⇒ <code>void</code>
-        * [.handlerCB](#Jobber+handle+handlerCB(instr)) ⇒ <code>Object</code>
+        * [.handlerCB](#Jobber+handle+handlerCB(instrs)) ⇒ <code>Object</code>
 
 <a name="new_Jobber_new"></a>
 
@@ -110,12 +110,12 @@ Initialize jobber (if not already done so in construction).
 
 <a name="Jobber+request"></a>
 
-### jobber.request(jobType, instr) ⇒ <code>Promise.&lt;Object, Object&gt;</code>
+### jobber.request(jobType, instr) ⇒ <code>Promise.&lt;Object&gt;</code>
 Request a new job
 
 **Kind**: instance method of <code>[Jobber](#Jobber)</code>  
-**Returns**: <code>Promise.&lt;Object, Object&gt;</code> - A promise that's resolved to the job
-    instructions and results objects.  
+**Returns**: <code>Promise.&lt;Object&gt;</code> - A promise that resolves with an object
+    with 'results' and original 'instrs'  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -134,15 +134,15 @@ Register a handler for a particular job type
 | jobType | <code>string</code> | String identifying the job type to be handled |
 | handlerCb | <code>handlerCB</code> | Callback to job handler function |
 
-<a name="Jobber+handle+handlerCB(instr)"></a>
+<a name="Jobber+handle+handlerCB(instrs)"></a>
 
 #### handle.handlerCB ⇒ <code>Object</code>
 Handler callback
 
 **Kind**: instance typedef of <code>[handle](#Jobber+handle)</code>  
-**Returns**: <code>Object</code> - Job results  
+**Returns**: <code>Object</code> - Job results or a Promise for results  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| instr | <code>Object</code> | Requested job instructions |
+| instrs | <code>Object</code> | Requested job instructions |
 

@@ -6,9 +6,9 @@
 * [Jobber](#Jobber)
     * [new Jobber([serverId], [pgConfig], [options])](#new_Jobber_new)
     * [.init(serverId, pgConfig, [options])](#Jobber+init) ⇒ <code>void</code>
-    * [.request(jobType, instr)](#Jobber+request) ⇒ <code>Promise.&lt;Object, Object&gt;</code>
+    * [.request(jobType, instr)](#Jobber+request) ⇒ <code>Promise.&lt;Object&gt;</code>
     * [.handle(jobType, handlerCb)](#Jobber+handle) ⇒ <code>void</code>
-        * [.handlerCB](#Jobber+handle+handlerCB(instr)) ⇒ <code>Object</code>
+        * [.handlerCB](#Jobber+handle+handlerCB(instrs)) ⇒ <code>Object</code>
 
 <a name="new_Jobber_new"></a>
 
@@ -42,12 +42,12 @@ Initialize jobber (if not already done so in construction).
 
 <a name="Jobber+request"></a>
 
-### jobber.request(jobType, instr) ⇒ <code>Promise.&lt;Object, Object&gt;</code>
+### jobber.request(jobType, instr) ⇒ <code>Promise.&lt;Object&gt;</code>
 Request a new job
 
 **Kind**: instance method of <code>[Jobber](#Jobber)</code>  
-**Returns**: <code>Promise.&lt;Object, Object&gt;</code> - A promise that's resolved to the job
-    instructions and results objects.  
+**Returns**: <code>Promise.&lt;Object&gt;</code> - A promise that resolves with an object
+    with 'results' and original 'instrs'  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -66,15 +66,15 @@ Register a handler for a particular job type
 | jobType | <code>string</code> | String identifying the job type to be handled |
 | handlerCb | <code>handlerCB</code> | Callback to job handler function |
 
-<a name="Jobber+handle+handlerCB(instr)"></a>
+<a name="Jobber+handle+handlerCB(instrs)"></a>
 
 #### handle.handlerCB ⇒ <code>Object</code>
 Handler callback
 
 **Kind**: instance typedef of <code>[handle](#Jobber+handle)</code>  
-**Returns**: <code>Object</code> - Job results  
+**Returns**: <code>Object</code> - Job results or a Promise for results  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| instr | <code>Object</code> | Requested job instructions |
+| instrs | <code>Object</code> | Requested job instructions |
 

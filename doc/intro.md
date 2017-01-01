@@ -1,7 +1,7 @@
 # Postres-based Job Manager (pg-jobber)
 
 A simple, responsive job queue manager based on PostgreSQL 9.6+,
-designed for clusters of up to about 5-10 workers per job type.
+designed for clusters of up to about a dozen workers per job type.
 
 * Simple, promise-based API for job requesters and handler interface
   for workers.
@@ -38,8 +38,8 @@ var jobber   = require('pg-jobber')(myId, pgconfig);
 Issuing a job request:
 
 ```
-jobber.request("calculator", [5, '+', [2, '*', 3]]).then(instr, results => {
-    console.info(`5 + (2 x 3) = ${results}`);
+jobber.request("calculator", [5, '+', [2, '*', 3]]).then(response => {
+    console.info(`5 + (2 x 3) = ${response.results}`);
 }).catch(err) {
     console.error("Calculator job request failed with error:", err);
 });
@@ -50,7 +50,7 @@ jobber.request("calculator", [5, '+', [2, '*', 3]]).then(instr, results => {
 Registering for a job type and processing jobs:
 
 ```
-jobber.handle('calculator', instr => {
+jobber.handle('calculator', instrs => {
 
     function calculate(num1:any, op:string, num2:any) {
         if (Array.isArray(num1)) { num1 = calculate(num1); }
@@ -63,6 +63,6 @@ jobber.handle('calculator', instr => {
         return eval(num1 + op + num2);
     }
 
-    return calculate(instr);
+    return calculate(instrs);
 });
 ```
