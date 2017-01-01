@@ -1,6 +1,6 @@
 # Postres-based Job Manager (pg-jobber)
 
-A simple, responsive job queue manager based on PostgreSQL 9.6+,
+A simple, responsive job queue manager based on PostgreSQL 9.5+,
 designed for clusters of up to about a dozen workers per job type.
 
 * Simple, promise-based API for job requesters and handler interface
@@ -9,7 +9,7 @@ designed for clusters of up to about a dozen workers per job type.
 * Flexible, JSON-based job request instructions and results.
 
 * Takes advantage of "SKIP LOCKED" and "LISTEN/NOTIFY" features of
-  Postgres 9.6 for robust and responsive performance.
+  Postgres 9.5 for robust and responsive performance.
 
 * Supports an arbitrary number of job types and worker pools,  differing 
   job priorities, and tracking of job processing performance.
