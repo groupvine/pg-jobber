@@ -1,13 +1,13 @@
 var pgp = require('pg-promise')();
 
+declare var Promise:any;
+
 export enum JobState {
     New        = 0,
     Processing = 1,
     Completed  = 2,
     Archived   = 3
 };
-
-declare var Promise:any;
 
 import {jobTableTmpl,
         jobIndexesTmpls,
@@ -32,7 +32,7 @@ class Jobber {
     
     /**
      * A Postgres-based job scheduling utility 
-     * for relatively small server clusters.
+     * for small-ish server clusters.
      *
      * Constructor, optionally invoked with serverId and 
      * Postgres configuration data (otherwise, must call .init() 
