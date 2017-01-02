@@ -64,7 +64,7 @@ export var claimJobTmpl = "            \
                     OR (job_state = 1 AND worker = ${serverId})) \
               AND  job_id <> ALL(${busyJobIds}) \
               AND  job_type = ${jobType}       \
-              ORDER BY sel_job_id ASC          \
+              ORDER BY priority DESC, sel_job_id ASC  \
               FOR UPDATE SKIP LOCKED           \
               LIMIT 1) AS row                  \
     WHERE  job_id = row.sel_job_id             \
