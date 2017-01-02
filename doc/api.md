@@ -7,14 +7,14 @@
     * [new Jobber([serverId], [pgConfig], [options])](#new_Jobber_new)
     * [.init(serverId, pgConfig, [options])](#Jobber+init) ⇒ <code>void</code>
     * [.request(jobType, instr)](#Jobber+request) ⇒ <code>Promise.&lt;Object&gt;</code>
-    * [.handle(jobType, handlerCb)](#Jobber+handle) ⇒ <code>void</code>
+    * [.handle(jobType, handlerCb, [options])](#Jobber+handle) ⇒ <code>void</code>
         * [.handlerCB](#Jobber+handle+handlerCB(instrs)) ⇒ <code>any</code> &#124; <code>Promise</code>
 
 <a name="new_Jobber_new"></a>
 
 ### new Jobber([serverId], [pgConfig], [options])
 A Postgres-based job scheduling utility
-for relatively small server clusters.
+for small-ish server clusters.
 
 Constructor, optionally invoked with serverId and
 Postgres configuration data (otherwise, must call .init()
@@ -38,7 +38,7 @@ Initialize jobber (if not already done in construction).
 | --- | --- | --- |
 | serverId | <code>string</code> | Unique string identifying this server |
 | pgConfig | <code>Object</code> | Postgres configuration, must include     properties: host {string}, port {number}, database {string},     user {string}, and password {string}. |
-| [options] | <code>Object</code> | Optional configuration info, with     properties: logger {Bunyan compatible logger};     archiveJobs {boolean} to archive rather than delete jobs     from queue when done. |
+| [options] | <code>Object</code> | Optional configuration info, with     properties: 'logger' {Bunyan compatible logger};     'archiveJobs' {boolean} to archive rather than delete jobs     from queue when done; 'maxWorkers' {integer} for the default     maximum number of simultaneous worker processes per job type. |
 
 <a name="Jobber+request"></a>
 
@@ -56,7 +56,7 @@ Request a new job
 
 <a name="Jobber+handle"></a>
 
-### jobber.handle(jobType, handlerCb) ⇒ <code>void</code>
+### jobber.handle(jobType, handlerCb, [options]) ⇒ <code>void</code>
 Register a handler for a particular job type
 
 **Kind**: instance method of <code>[Jobber](#Jobber)</code>  
@@ -65,6 +65,7 @@ Register a handler for a particular job type
 | --- | --- | --- |
 | jobType | <code>string</code> | String identifying the job type to be handled |
 | handlerCb | <code>handlerCB</code> | Callback to job handler function |
+| [options] | <code>Object</code> | Optional properties are: 'maxWorkers' {number}     for the maximum number of simultaneous workers for this job type on     this server. |
 
 <a name="Jobber+handle+handlerCB(instrs)"></a>
 

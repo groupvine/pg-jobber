@@ -62,6 +62,7 @@ export var claimJobTmpl = "            \
     FROM   (SELECT job_id as sel_job_id from pgjobber_jobs   \
              WHERE (job_state = 0              \
                     OR (job_state = 1 AND worker = ${serverId})) \
+              AND  job_id <> ALL(${busyJobIds}) \
               AND  job_type = ${jobType}       \
               ORDER BY sel_job_id ASC          \
               FOR UPDATE SKIP LOCKED           \

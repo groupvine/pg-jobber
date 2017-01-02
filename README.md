@@ -1,7 +1,7 @@
 # Postres-based Job Manager (pg-jobber)
 
 A simple, responsive job queue manager based on PostgreSQL 9.5+,
-designed for clusters of up to about a dozen workers per job type.
+designed for clusters of up to about a dozen job servers per job type.
 
 * Simple, promise-based API for job requesters and handler interface
   for workers.
@@ -11,8 +11,10 @@ designed for clusters of up to about a dozen workers per job type.
 * Takes advantage of "SKIP LOCKED" and "LISTEN/NOTIFY" features of
   Postgres 9.5 for robust and responsive performance.
 
-* Supports an arbitrary number of job types and worker pools,  differing 
-  job priorities, and tracking of job processing performance.
+* Supports an arbitrary number of job types and job server pools,
+  arbitrary number of concurrent worker threads for each job server,
+  differing job priorities, and tracking of job processing
+  performance.
 
 **Note that this module will create a "pgjobber_jobs" table in the associated 
 PostgreSQL database, if not already present.**
@@ -22,7 +24,7 @@ PostgreSQL database, if not already present.**
 ### Initialize jobber
 
 To be done once during server startup initialization 
-(same for job requesters and workers).
+(same for job requesters and servers).
 
 ```
 var myId     = "server-10.0.0.17";
@@ -45,13 +47,13 @@ jobber.request("calculator", [5, '+', [2, '*', 3]]).then(response => {
 });
 ```
 
-### Worker
+### Job Worker
 
 Registering for a job type and processing jobs:
 
 ```
-jobber.handle('calculator', instrs => {
 
+function calculator(instrs) {
     function calculate(num1:any, op:string, num2:any) {
         if (Array.isArray(num1)) { num1 = calculate(num1); }
         if (Array.isArray(num2)) { num2 = calculate(num2); }
@@ -64,7 +66,9 @@ jobber.handle('calculator', instrs => {
     }
 
     return calculate(instrs);
-});
+}
+
+jobber.handle('calculator', calculator, {maxWorkers : 2});
 ```
 <a name="Jobber"></a>
 
@@ -75,14 +79,14 @@ jobber.handle('calculator', instrs => {
     * [new Jobber([serverId], [pgConfig], [options])](#new_Jobber_new)
     * [.init(serverId, pgConfig, [options])](#Jobber+init) ⇒ <code>void</code>
     * [.request(jobType, instr)](#Jobber+request) ⇒ <code>Promise.&lt;Object&gt;</code>
-    * [.handle(jobType, handlerCb)](#Jobber+handle) ⇒ <code>void</code>
+    * [.handle(jobType, handlerCb, [options])](#Jobber+handle) ⇒ <code>void</code>
         * [.handlerCB](#Jobber+handle+handlerCB(instrs)) ⇒ <code>any</code> &#124; <code>Promise</code>
 
 <a name="new_Jobber_new"></a>
 
 ### new Jobber([serverId], [pgConfig], [options])
 A Postgres-based job scheduling utility
-for relatively small server clusters.
+for small-ish server clusters.
 
 Constructor, optionally invoked with serverId and
 Postgres configuration data (otherwise, must call .init()
@@ -106,7 +110,7 @@ Initialize jobber (if not already done in construction).
 | --- | --- | --- |
 | serverId | <code>string</code> | Unique string identifying this server |
 | pgConfig | <code>Object</code> | Postgres configuration, must include     properties: host {string}, port {number}, database {string},     user {string}, and password {string}. |
-| [options] | <code>Object</code> | Optional configuration info, with     properties: logger {Bunyan compatible logger};     archiveJobs {boolean} to archive rather than delete jobs     from queue when done. |
+| [options] | <code>Object</code> | Optional configuration info, with     properties: 'logger' {Bunyan compatible logger};     'archiveJobs' {boolean} to archive rather than delete jobs     from queue when done; 'maxWorkers' {integer} for the default     maximum number of simultaneous worker processes per job type. |
 
 <a name="Jobber+request"></a>
 
@@ -124,7 +128,7 @@ Request a new job
 
 <a name="Jobber+handle"></a>
 
-### jobber.handle(jobType, handlerCb) ⇒ <code>void</code>
+### jobber.handle(jobType, handlerCb, [options]) ⇒ <code>void</code>
 Register a handler for a particular job type
 
 **Kind**: instance method of <code>[Jobber](#Jobber)</code>  
@@ -133,6 +137,7 @@ Register a handler for a particular job type
 | --- | --- | --- |
 | jobType | <code>string</code> | String identifying the job type to be handled |
 | handlerCb | <code>handlerCB</code> | Callback to job handler function |
+| [options] | <code>Object</code> | Optional properties are: 'maxWorkers' {number}     for the maximum number of simultaneous workers for this job type on     this server. |
 
 <a name="Jobber+handle+handlerCB(instrs)"></a>
 

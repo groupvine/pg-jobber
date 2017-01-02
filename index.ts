@@ -29,7 +29,8 @@ class Jobber {
     
     pendingJobs : any;
     jobHandlers : any;
-    
+    jobTimerId  : any;
+
     /**
      * A Postgres-based job scheduling utility 
      * for small-ish server clusters.
@@ -47,6 +48,7 @@ class Jobber {
     constructor (serverId?:string, pgConfig?:any, options?:any) {
         this.pendingJobs = {};
         this.jobHandlers = {};
+        this.jobTimerId  = null;
 
         if (serverId && pgConfig) {
             this.init(serverId, pgConfig, options);
@@ -71,9 +73,10 @@ class Jobber {
      *     user {string}, and password {string}.
      *
      * @param {Object=} options  - Optional configuration info, with 
-     *     properties: logger {Bunyan compatible logger}; 
-     *     archiveJobs {boolean} to archive rather than delete jobs
-     *     from queue when done.
+     *     properties: 'logger' {Bunyan compatible logger}; 
+     *     'archiveJobs' {boolean} to archive rather than delete jobs
+     *     from queue when done; 'maxWorkers' {integer} for the default
+     *     maximum number of simultaneous worker processes per job type.
      *
      * @returns {void}
      */
@@ -83,6 +86,11 @@ class Jobber {
         this.pgConfig = pgConfig;
         this.options  = options ? options : {};
         this.db       = pgp(pgConfig);
+
+        // set defaults
+        if (!this.options.maxWorkers) {
+            this.options.maxWorkers = 1;
+        }
 
         let _this = this;
 
@@ -206,18 +214,30 @@ class Jobber {
      * 
      * @param {string} jobType - String identifying the job type to be handled
      * @param {handlerCB} handlerCb - Callback to job handler function
+     * @param {Object=} options  - Optional properties are: 'maxWorkers' {number}
+     *     for the maximum number of simultaneous workers for this job type on 
+     *     this server.
      *
      * @returns {void}
      */
-    public handle(jobType:string, handlerCb:any) : void {
+    public handle(jobType:string, handlerCb:any, options:any) : void {
+        if (!options) { options = {}; }
+
         // Register this server as a handler for this jobType
-        this.jobHandlers[jobType] = {cb : handlerCb, busy : false};
+        this.jobHandlers[jobType] = {
+            cb         : handlerCb, 
+            busyJobs   : [],
+            maxWorkers : options.maxWorkers ? options.maxWorkers : this.options.maxWorkers
+        };
 
         if (this.permConn) {
             this.permConn.none(regListenerTmpl, {
                 channel : this.jobType2Ch(jobType)
             });
         }
+
+        // Check right away for jobs pending on the queue
+        this.scheduleWorker(jobType);
     }
 
     //
@@ -258,13 +278,7 @@ class Jobber {
 
         case 'newJob':
             let jobType = notifyData.jobType
-
-            if (! this.jobHandlers[jobType].busy) {
-                // Not already processing a job of this type
-                // (If so, will check after completing for more)
-                this.jobHandlers[jobType].busy = true;
-                this.handleNewJobNotification(jobType);
-            }
+            this.scheduleWorker(jobType);
             break;
 
         case 'doneJob':
@@ -276,8 +290,34 @@ class Jobber {
         }
     }
 
-    private handleNewJobNotification(jobType:string) {
-        let _this   = this;
+    private availWorkers(jobType) {
+        return Math.max(this.jobHandlers[jobType].maxWorkers - 
+                        this.jobHandlers[jobType].busyJobs.length, 
+                        0);
+    }
+
+    private scheduleWorker(jobType) {
+        let _this = this;
+
+        if (this.jobTimerId) {
+            return;
+        }
+
+        if (! this.availWorkers(jobType)) {
+            return; 
+        }
+
+        this.logDebug(`Scheduling job ${jobType}`);
+
+        this.jobTimerId = setTimeout(function() {
+            _this.jobTimerId = null;
+            _this.logDebug(`Attempting job with ${_this.jobHandlers[jobType].busyJobs.length} busy workers`);
+            _this.attemptJob(jobType);
+        }, 10);
+    }
+
+    private attemptJob(jobType:string) {
+        let self   = this;
         let jobData = null;
 
         if (!this.jobHandlers[jobType]) {
@@ -285,21 +325,44 @@ class Jobber {
             return;
         }
 
+        if (! this.availWorkers(jobType)) {
+            this.logDebug("No available workers, returning from attemptJob()");
+            return;
+        }
+
+        let busyJobIds = this.jobHandlers[jobType].busyJobs;
+
+        if (!busyJobIds.length) {
+            // So query doesn't break (0 is an invalid job_id)
+            busyJobIds = [0];   
+        }
+
         // Try to claim the job (or a job)
         this.db.oneOrNone(claimJobTmpl, {
-            now      : new Date(),
-            serverId : this.serverId,
-            jobType  : jobType
+            now        : new Date(),
+            serverId   : this.serverId,
+            jobType    : jobType,
+            busyJobIds : busyJobIds
 
         }).then(data => {
             if (!data) {
                 // unable to claim a job, just throw a coded exception
+                self.logDebug(`No more ${jobType} jobs, returning`);
                 throw "no job"
             }
 
-            // Invoke worker handler to process job
+            // Set job data.  Be sure busyJobs is set before scheduling 
+            // new possible jobs so it's excluded from next job query
             jobData = data;
-            let res = _this.jobHandlers[jobType].cb(jobData.instrs);
+            self.jobHandlers[jobType].busyJobs.push(jobData.job_id);
+            
+            // We got a job, so schedule a check for more concurrent jobs
+            self.scheduleWorker(jobType);
+
+            self.logDebug(`Starting ${jobType} job ${jobData.job_id}: ${jobData.instrs}`);
+
+            // Invoke worker handler to process job
+            let res = self.jobHandlers[jobType].cb(jobData.instrs);
             if (res.then instanceof Function) {
                 return res; // it's a promise, so return it
             } else {
@@ -309,8 +372,10 @@ class Jobber {
         }).then(res => {
             jobData.results = res;  // save results
 
+            self.logDebug(`Finished ${jobType} job ${jobData.job_id}`);
+
             // Update job record as completed with results
-            return _this.db.any(completeJobTmpl, {
+            return self.db.any(completeJobTmpl, {
                 results : JSON.stringify(res),
                 now     : new Date(),
                 jobId   : jobData.job_id
@@ -325,27 +390,34 @@ class Jobber {
                 results    : jobData.results
             };
 
-            return _this.db.none(sendNotifyTmpl, {
-                channel : _this.serverId2Ch(jobData.requester),
+            self.logDebug(`Sending job done for job ${jobData.job_id}`);
+
+            return self.db.none(sendNotifyTmpl, {
+                channel : self.serverId2Ch(jobData.requester),
                 info    : JSON.stringify(jobInfo)
             });
 
         }).then( () => {
             // done, try to get another job
-            setTimeout(function() {
-                _this.handleNewJobNotification(jobType);
-            }, 10);
+            if (jobData) {
+                this.removeFromList(self.jobHandlers[jobType].busyJobs,
+                                    jobData.job_id);
+            }
+
+            self.scheduleWorker(jobType);
             return;
 
         }).catch(err => {
-            // Done working on this job type
-            _this.jobHandlers[jobType].busy = false;
-
             if (err === "no job") {
                 return;  // couldn't claim a job
             }
 
-            _this.logError("Error processing job", err);
+            if (jobData) {
+                this.removeFromList(self.jobHandlers[jobType].busyJobs,
+                                    jobData.job_id);
+            }
+
+            self.logError("Error processing job", err);
         });
         
     }
@@ -353,8 +425,10 @@ class Jobber {
     private handleDoneJobNotification(notifyData:any) {
         let _this   = this;
 
+        _this.logDebug(`Rcvd job done for job ${notifyData.jobId}`);
+
         if (! this.pendingJobs[notifyData.jobId]) {
-            this.logError(`Received completed job notification for jobId ${notifyData.jobId} that is not pending for this server (perhaps already serviced, or enqueued prior to a server restart?)`);
+            this.logError(`Rcvd job done for job ${notifyData.jobId} that is not pending for this server (perhaps already serviced, or enqueued prior to a server restart?)`);
         } else {
             // Call the associated resolve() method
             this.pendingJobs[notifyData.jobId].resolve({ 
@@ -388,6 +462,13 @@ class Jobber {
         return `<${serverId}>`;
     }
 
+    private removeFromList(listValue, value) {
+        let index = listValue.indexOf(value);
+        if (index > -1) {
+            listValue.splice(index, 1);
+        } 
+    }
+
     private logError(msg:string, err?:any) {
         if (this.options.logger) {
             this.options.logger.error({err : err}, msg);
@@ -401,6 +482,14 @@ class Jobber {
             this.options.logger.info(msg);
         } else {
             console.log(msg);
+        }
+    }
+ 
+    private logDebug(msg:string) {
+        if (this.options.logger) {
+            this.options.logger.debug(msg);
+        } else {
+            console.debug(msg);
         }
     }
 }

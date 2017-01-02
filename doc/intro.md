@@ -1,7 +1,7 @@
 # Postres-based Job Manager (pg-jobber)
 
 A simple, responsive job queue manager based on PostgreSQL 9.5+,
-designed for clusters of up to about a dozen workers per job type.
+designed for clusters of up to about a dozen job servers per job type.
 
 * Simple, promise-based API for job requesters and handler interface
   for workers.
@@ -11,8 +11,10 @@ designed for clusters of up to about a dozen workers per job type.
 * Takes advantage of "SKIP LOCKED" and "LISTEN/NOTIFY" features of
   Postgres 9.5 for robust and responsive performance.
 
-* Supports an arbitrary number of job types and worker pools,  differing 
-  job priorities, and tracking of job processing performance.
+* Supports an arbitrary number of job types and job server pools,
+  arbitrary number of concurrent worker threads for each job server,
+  differing job priorities, and tracking of job processing
+  performance.
 
 **Note that this module will create a "pgjobber_jobs" table in the associated 
 PostgreSQL database, if not already present.**
@@ -22,7 +24,7 @@ PostgreSQL database, if not already present.**
 ### Initialize jobber
 
 To be done once during server startup initialization 
-(same for job requesters and workers).
+(same for job requesters and servers).
 
 ```
 var myId     = "server-10.0.0.17";
@@ -45,13 +47,13 @@ jobber.request("calculator", [5, '+', [2, '*', 3]]).then(response => {
 });
 ```
 
-### Worker
+### Job Worker
 
 Registering for a job type and processing jobs:
 
 ```
-jobber.handle('calculator', instrs => {
 
+function calculator(instrs) {
     function calculate(num1:any, op:string, num2:any) {
         if (Array.isArray(num1)) { num1 = calculate(num1); }
         if (Array.isArray(num2)) { num2 = calculate(num2); }
@@ -64,5 +66,7 @@ jobber.handle('calculator', instrs => {
     }
 
     return calculate(instrs);
-});
+}
+
+jobber.handle('calculator', calculator, {maxWorkers : 2});
 ```
