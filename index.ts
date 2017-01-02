@@ -153,6 +153,7 @@ class Jobber {
      * 
      * @param {string} jobType - String identifying the job type and associated worker pool
      * @param {Object} instr   - Job-specific instructions
+     * @param {number=} priority - Job priority (higher the greater, default 5)
      *
      * @returns {Promise.<Object>}  A promise that resolves with an object
      *     with 'results' and original 'instrs' properties

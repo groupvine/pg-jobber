@@ -78,7 +78,7 @@ jobber.handle('calculator', calculator, {maxWorkers : 2});
 * [Jobber](#Jobber)
     * [new Jobber([serverId], [pgConfig], [options])](#new_Jobber_new)
     * [.init(serverId, pgConfig, [options])](#Jobber+init) ⇒ <code>void</code>
-    * [.request(jobType, instr)](#Jobber+request) ⇒ <code>Promise.&lt;Object&gt;</code>
+    * [.request(jobType, instr, [priority])](#Jobber+request) ⇒ <code>Promise.&lt;Object&gt;</code>
     * [.handle(jobType, handlerCb, [options])](#Jobber+handle) ⇒ <code>void</code>
         * [.handlerCB](#Jobber+handle+handlerCB(instrs)) ⇒ <code>any</code> &#124; <code>Promise</code>
 
@@ -114,7 +114,7 @@ Initialize jobber (if not already done in construction).
 
 <a name="Jobber+request"></a>
 
-### jobber.request(jobType, instr) ⇒ <code>Promise.&lt;Object&gt;</code>
+### jobber.request(jobType, instr, [priority]) ⇒ <code>Promise.&lt;Object&gt;</code>
 Request a new job
 
 **Kind**: instance method of <code>[Jobber](#Jobber)</code>  
@@ -125,6 +125,7 @@ Request a new job
 | --- | --- | --- |
 | jobType | <code>string</code> | String identifying the job type and associated worker pool |
 | instr | <code>Object</code> | Job-specific instructions |
+| [priority] | <code>number</code> | Job priority (higher the greater, default 5) |
 
 <a name="Jobber+handle"></a>
 
