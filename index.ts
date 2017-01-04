@@ -266,7 +266,7 @@ class Jobber {
      *
      * @method Jobber#workerPool
      *
-     * @returns {null|{string}} 
+     * @returns {null|string}
      */
     public workerPool() : string {
         if (this.options.workerPool) {

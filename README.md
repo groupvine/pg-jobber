@@ -82,7 +82,7 @@ jobber.handle('calculator', calculator, {maxWorkers : 2});
     * [.request(jobType, instr, [options])](#Jobber+request) ⇒ <code>Promise.&lt;Object&gt;</code>
     * [.handle(jobType, handlerCb, [options])](#Jobber+handle) ⇒ <code>void</code>
         * [.handlerCB](#Jobber+handle+handlerCB(instrs)) ⇒ <code>any</code> &#124; <code>Promise</code>
-    * [.workerPool()](#Jobber+workerPool) ⇒ <code>null</code> &#124; <code>Object</code>
+    * [.workerPool()](#Jobber+workerPool) ⇒ <code>null</code> &#124; <code>string</code>
 
 <a name="new_Jobber_new"></a>
 
@@ -156,7 +156,7 @@ Handler callback
 
 <a name="Jobber+workerPool"></a>
 
-### jobber.workerPool() ⇒ <code>null</code> &#124; <code>Object</code>
+### jobber.workerPool() ⇒ <code>null</code> &#124; <code>string</code>
 Get the worker pool this Jobber is running in.  This
 can be useful, for instance, by worker services
 creating modified URIs
