@@ -177,6 +177,12 @@ class Jobber {
         let self  = this;
         let now   = new Date();
 
+        if (!jobType) {
+            let msg = "Received null jobType in call to Jobber.request()"
+            this.logError(msg);
+            throw Error(msg);
+        }
+
         return new Promise( (resolve, reject) => {
             // Enqueue a new job request
             self.db.one(newJobTmpl, {
@@ -238,6 +244,12 @@ class Jobber {
      */
     public handle(jobType:string, handlerCb:any, options:any) : void {
         if (!options) { options = {}; }
+
+        if (!jobType) {
+            let msg = "Received null jobType in call to Jobber.handle()"
+            this.logError(msg);
+            throw Error(msg);
+        }
 
         // Register this server as a handler for this jobType
         this.jobHandlers[jobType] = {
