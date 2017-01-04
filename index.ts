@@ -268,7 +268,7 @@ class Jobber {
      *
      * @returns {null|{string}} 
      */
-    public workerPool() {
+    public workerPool() : string {
         if (this.options.workerPool) {
             return this.options.workerPool;
         } else {
