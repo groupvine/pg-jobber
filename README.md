@@ -127,7 +127,7 @@ Request a new job
 | --- | --- | --- |
 | jobType | <code>string</code> | String identifying the job type and associated worker pool |
 | instr | <code>Object</code> | Job-specific instructions |
-| [options] | <code>Object</code> | Has optional properties: 'priority' {number}       for integer job priority (minimum 1, higher the greater, default 5). |
+| [options] | <code>Object</code> | Has optional properties: 'priority' {number}       for integer job priority (priority 1 has most urgency, default 5). |
 
 <a name="Jobber+handle"></a>
 

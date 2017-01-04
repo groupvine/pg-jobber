@@ -167,7 +167,7 @@ class Jobber {
      * @param {string} jobType - String identifying the job type and associated worker pool
      * @param {Object} instr   - Job-specific instructions
      * @param {Object=} options  - Has optional properties: 'priority' {number} 
-     *       for integer job priority (minimum 1, higher the greater, default 5).
+     *       for integer job priority (priority 1 has most urgency, default 5).
      *
      * @returns {Promise.<Object>}  A promise that resolves with an object
      *     with 'results', original 'instrs', and 'jobType' properties 
