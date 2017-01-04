@@ -166,7 +166,8 @@ class Jobber {
      * 
      * @param {string} jobType - String identifying the job type and associated worker pool
      * @param {Object} instr   - Job-specific instructions
-     * @param {number=} priority - Job priority (higher the greater, default 5)
+     * @param {Object=} options  - Optional properties are: 'priority' {number}
+     *       Job priority (higher the greater, default 5).
      *
      * @returns {Promise.<Object>}  A promise that resolves with an object
      *     with 'results' and original 'instrs' properties
@@ -254,6 +255,25 @@ class Jobber {
 
         // Check right away for jobs pending on the queue
         this.scheduleWorker(jobType);
+    }
+
+    /**
+     * Get the worker pool this Jobber is running in.  This
+     * can be useful, for instance, by worker services 
+     * creating modified URIs 
+     * for content created to be returned to the user, so the user
+     * remains connected to a given worker pool.
+     *
+     * @method Jobber#workerPool
+     *
+     * @returns {null|{string}} 
+     */
+    public workerPool() {
+        if (this.options.workerPool) {
+            return this.options.workerPool;
+        } else {
+            return null;   
+        }
     }
 
     //

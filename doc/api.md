@@ -6,9 +6,10 @@
 * [Jobber](#Jobber)
     * [new Jobber([serverId], [pgConfig], [options])](#new_Jobber_new)
     * [.init(serverId, pgConfig, [options])](#Jobber+init) ⇒ <code>void</code>
-    * [.request(jobType, instr, [priority])](#Jobber+request) ⇒ <code>Promise.&lt;Object&gt;</code>
+    * [.request(jobType, instr, [options])](#Jobber+request) ⇒ <code>Promise.&lt;Object&gt;</code>
     * [.handle(jobType, handlerCb, [options])](#Jobber+handle) ⇒ <code>void</code>
         * [.handlerCB](#Jobber+handle+handlerCB(instrs)) ⇒ <code>any</code> &#124; <code>Promise</code>
+    * [.workerPool()](#Jobber+workerPool) ⇒ <code>null</code> &#124; <code>Object</code>
 
 <a name="new_Jobber_new"></a>
 
@@ -42,7 +43,7 @@ Initialize jobber (if not already done in construction).
 
 <a name="Jobber+request"></a>
 
-### jobber.request(jobType, instr, [priority]) ⇒ <code>Promise.&lt;Object&gt;</code>
+### jobber.request(jobType, instr, [options]) ⇒ <code>Promise.&lt;Object&gt;</code>
 Request a new job
 
 **Kind**: instance method of <code>[Jobber](#Jobber)</code>  
@@ -53,7 +54,7 @@ Request a new job
 | --- | --- | --- |
 | jobType | <code>string</code> | String identifying the job type and associated worker pool |
 | instr | <code>Object</code> | Job-specific instructions |
-| [priority] | <code>number</code> | Job priority (higher the greater, default 5) |
+| [options] | <code>Object</code> | Optional properties are: 'priority' {number}       Job priority (higher the greater, default 5). |
 
 <a name="Jobber+handle"></a>
 
@@ -80,3 +81,13 @@ Handler callback
 | --- | --- | --- |
 | instrs | <code>Object</code> | Requested job instructions |
 
+<a name="Jobber+workerPool"></a>
+
+### jobber.workerPool() ⇒ <code>null</code> &#124; <code>Object</code>
+Get the worker pool this Jobber is running in.  This
+can be useful, for instance, by worker services
+creating modified URIs
+for content created to be returned to the user, so the user
+remains connected to a given worker pool.
+
+**Kind**: instance method of <code>[Jobber](#Jobber)</code>  
