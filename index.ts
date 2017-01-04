@@ -1,6 +1,8 @@
-var pgp = require('pg-promise')();
-
 declare var Promise:any;
+declare var require:any;
+declare var module:any;
+
+var pgp = require('pg-promise')();
 
 export enum JobState {
     New        = 0,
