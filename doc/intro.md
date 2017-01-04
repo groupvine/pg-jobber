@@ -12,7 +12,8 @@ designed for clusters of up to about a dozen job servers per job type.
   Postgres 9.5 for robust and responsive performance.
 
 * Supports an arbitrary number of job types and job server pools,
-  arbitrary number of concurrent worker threads for each job server,
+  specified number of concurrent worker threads for each job server,
+  specified maximum number of attempts per job of each type,
   differing job priorities, and tracking of job processing
   performance.
 

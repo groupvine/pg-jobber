@@ -6,7 +6,8 @@ export enum JobState {
     New        = 0,
     Processing = 1,
     Completed  = 2,
-    Archived   = 3
+    Archived   = 3,
+    Failed     = 4
 };
 
 import {jobTableTmpl,
@@ -17,6 +18,7 @@ import {jobTableTmpl,
         claimJobTmpl,
         completeJobTmpl,
         archiveJobTmpl,
+        failedJobTmpl,
         removeJobTmpl}     from './db';
 
 class Jobber {
@@ -76,7 +78,9 @@ class Jobber {
      *     properties: 'logger' {Bunyan compatible logger}; 
      *     'archiveJobs' {boolean} to archive rather than delete jobs
      *     from queue when done; 'maxWorkers' {integer} for the default
-     *     maximum number of simultaneous worker processes per job type.
+     *     maximum number of simultaneous worker processes per job type (defaults to 1); 
+     *     'maxAttempts' {number} for the default maximum number of times to
+     *     attempt jobs when encountering processing errors (defaults to 3).
      *
      * @returns {void}
      */
@@ -90,6 +94,10 @@ class Jobber {
         // set defaults
         if (!this.options.maxWorkers) {
             this.options.maxWorkers = 1;
+        }
+
+        if (!this.options.maxAttempts) {
+            this.options.maxAttempts = 3;
         }
 
         let _this = this;
@@ -217,7 +225,8 @@ class Jobber {
      * @param {handlerCB} handlerCb - Callback to job handler function
      * @param {Object=} options  - Optional properties are: 'maxWorkers' {number}
      *     for the maximum number of simultaneous workers for this job type on 
-     *     this server.
+     *     this server; 'maxAttempts' {number} for maximum number of times to
+     *     attempt jobs of this type when encountering processing errors.
      *
      * @returns {void}
      */
@@ -226,9 +235,10 @@ class Jobber {
 
         // Register this server as a handler for this jobType
         this.jobHandlers[jobType] = {
-            cb         : handlerCb, 
-            busyJobs   : [],
-            maxWorkers : options.maxWorkers ? options.maxWorkers : this.options.maxWorkers
+            cb          : handlerCb, 
+            busyJobs    : [],
+            maxWorkers  : options.maxWorkers  ? options.maxWorkers  : this.options.maxWorkers,
+            maxAttempts : options.maxAttempts ? options.maxAttempts : this.options.maxAttempts
         };
 
         if (this.permConn) {
@@ -414,13 +424,33 @@ class Jobber {
             }
 
             if (jobData) {
-                this.removeFromList(self.jobHandlers[jobType].busyJobs,
-                                    jobData.job_id);
+                self.failedJobCheck(jobType, jobData).then( () => {
+                    this.removeFromList(self.jobHandlers[jobType].busyJobs,
+                                        jobData.job_id);
+                });
             }
 
-            self.logError("Error processing job", err);
+            self.logError(`Error processing job ${jobData.job_id}`, err);
         });
         
+    }
+
+    private failedJobCheck(jobType:string, jobData:any) {
+        let self = this;
+
+        return new Promise( (resolve, reject) => {
+            if (jobData.attempts < self.jobHandlers[jobType].maxAttempts) {
+                resolve();
+            } else {
+                // Update job record as completed with results
+                self.db.any(failedJobTmpl, {
+                    now     : new Date(),
+                    jobId   : jobData.job_id
+                }).then( () => {
+                    resolve();
+                });
+            }
+        });
     }
 
     private handleDoneJobNotification(notifyData:any) {

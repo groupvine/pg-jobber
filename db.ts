@@ -68,7 +68,7 @@ export var claimJobTmpl = "            \
               FOR UPDATE SKIP LOCKED           \
               LIMIT 1) AS row                  \
     WHERE  job_id = row.sel_job_id             \
-    RETURNING job_id, instrs, requester;       \
+    RETURNING job_id, instrs, requester, attempts; \
 ";
 
 // JobState.Completed
@@ -89,5 +89,13 @@ export var removeJobTmpl = "           \
 export var archiveJobTmpl = "           \
     UPDATE pgjobber_jobs               \
     SET    job_state = 3               \
+    WHERE  job_id = ${jobId};          \
+";
+
+// JobState.Failed
+export var failedJobTmpl = "           \
+    UPDATE pgjobber_jobs               \
+    SET    job_state = 4,              \
+           completed = ${now}          \
     WHERE  job_id = ${jobId};          \
 ";

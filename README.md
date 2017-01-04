@@ -12,7 +12,8 @@ designed for clusters of up to about a dozen job servers per job type.
   Postgres 9.5 for robust and responsive performance.
 
 * Supports an arbitrary number of job types and job server pools,
-  arbitrary number of concurrent worker threads for each job server,
+  specified number of concurrent worker threads for each job server,
+  specified maximum number of attempts per job of each type,
   differing job priorities, and tracking of job processing
   performance.
 
@@ -110,7 +111,7 @@ Initialize jobber (if not already done in construction).
 | --- | --- | --- |
 | serverId | <code>string</code> | Unique string identifying this server |
 | pgConfig | <code>Object</code> | Postgres configuration, must include     properties: host {string}, port {number}, database {string},     user {string}, and password {string}. |
-| [options] | <code>Object</code> | Optional configuration info, with     properties: 'logger' {Bunyan compatible logger};     'archiveJobs' {boolean} to archive rather than delete jobs     from queue when done; 'maxWorkers' {integer} for the default     maximum number of simultaneous worker processes per job type. |
+| [options] | <code>Object</code> | Optional configuration info, with     properties: 'logger' {Bunyan compatible logger};     'archiveJobs' {boolean} to archive rather than delete jobs     from queue when done; 'maxWorkers' {integer} for the default     maximum number of simultaneous worker processes per job type (defaults to 1);     'maxAttempts' {number} for the default maximum number of times to     attempt jobs when encountering processing errors (defaults to 3). |
 
 <a name="Jobber+request"></a>
 
@@ -138,7 +139,7 @@ Register a handler for a particular job type
 | --- | --- | --- |
 | jobType | <code>string</code> | String identifying the job type to be handled |
 | handlerCb | <code>handlerCB</code> | Callback to job handler function |
-| [options] | <code>Object</code> | Optional properties are: 'maxWorkers' {number}     for the maximum number of simultaneous workers for this job type on     this server. |
+| [options] | <code>Object</code> | Optional properties are: 'maxWorkers' {number}     for the maximum number of simultaneous workers for this job type on     this server; 'maxAttempts' {number} for maximum number of times to     attempt jobs of this type when encountering processing errors. |
 
 <a name="Jobber+handle+handlerCB(instrs)"></a>
 
