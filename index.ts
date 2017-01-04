@@ -166,14 +166,15 @@ class Jobber {
      * 
      * @param {string} jobType - String identifying the job type and associated worker pool
      * @param {Object} instr   - Job-specific instructions
-     * @param {number=} priority  - Optional job priority
-     *       (higher the greater, default 5).
+     * @param {Object=} options  - Has optional properties: 'priority' {number} 
+     *       for integer job priority (minimum 1, higher the greater, default 5).
      *
      * @returns {Promise.<Object>}  A promise that resolves with an object
      *     with 'results', original 'instrs', and 'jobType' properties 
      */
 
-    public request(jobType:string, instrs:any, priority?:number) {
+    public request(jobType:string, instrs:any, options?:any) {
+        if (!options) { options = {}; }
         let self  = this;
         let now   = new Date();
 
@@ -189,7 +190,7 @@ class Jobber {
                 requester : self.serverId,
                 jobType   : jobType,
                 instrs    : JSON.stringify(instrs),
-                priority  : priority ? priority : 5,
+                priority  : options.priority ? options.priority : 5,
                 now       : now
 
             }).then(data => {

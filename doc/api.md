@@ -48,13 +48,13 @@ Request a new job
 
 **Kind**: instance method of <code>[Jobber](#Jobber)</code>  
 **Returns**: <code>Promise.&lt;Object&gt;</code> - A promise that resolves with an object
-    with 'results' and original 'instrs' properties  
+    with 'results', original 'instrs', and 'jobType' properties  
 
 | Param | Type | Description |
 | --- | --- | --- |
 | jobType | <code>string</code> | String identifying the job type and associated worker pool |
 | instr | <code>Object</code> | Job-specific instructions |
-| [options] | <code>Object</code> | Optional properties are: 'priority' {number}       Job priority (higher the greater, default 5). |
+| [options] | <code>Object</code> | Has optional properties: 'priority' {number}       for integer job priority (minimum 1, higher the greater, default 5). |
 
 <a name="Jobber+handle"></a>
 
