@@ -81,7 +81,7 @@ jobber.handle('calculator', calculator, {maxWorkers : 2});
     * [.init(serverId, pgConfig, [options])](#Jobber+init) ⇒ <code>void</code>
     * [.request(jobType, instr, [options])](#Jobber+request) ⇒ <code>Promise.&lt;Object&gt;</code>
     * [.handle(jobType, handlerCb, [options])](#Jobber+handle) ⇒ <code>void</code>
-        * [.handlerCB](#Jobber+handle+handlerCB(instrs)) ⇒ <code>any</code> &#124; <code>Promise</code>
+        * [.handlerCB(instrs,](#Jobber+handle+handlerCB(instrs,) ⇒ <code>any</code> &#124; <code>Promise</code>
     * [.workerPool()](#Jobber+workerPool) ⇒ <code>null</code> &#124; <code>string</code>
 
 <a name="new_Jobber_new"></a>
@@ -121,7 +121,7 @@ Request a new job
 
 **Kind**: instance method of <code>[Jobber](#Jobber)</code>  
 **Returns**: <code>Promise.&lt;Object&gt;</code> - A promise that resolves with an object
-    with 'results', original 'instrs', and 'jobType' properties  
+    with 'results', original 'instrs', 'jobType', and 'priority' properties  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -142,9 +142,9 @@ Register a handler for a particular job type
 | handlerCb | <code>handlerCB</code> | Callback to job handler function |
 | [options] | <code>Object</code> | Optional properties are: 'maxWorkers' {number}     for the maximum number of simultaneous workers for this job type on     this server; 'maxAttempts' {number} for maximum number of times to     attempt jobs of this type when encountering processing errors. |
 
-<a name="Jobber+handle+handlerCB(instrs)"></a>
+<a name="Jobber+handle+handlerCB(instrs,"></a>
 
-#### handle.handlerCB ⇒ <code>any</code> &#124; <code>Promise</code>
+#### handle.handlerCB(instrs, ⇒ <code>any</code> &#124; <code>Promise</code>
 Handler callback
 
 **Kind**: instance typedef of <code>[handle](#Jobber+handle)</code>  
@@ -153,6 +153,7 @@ Handler callback
 | Param | Type | Description |
 | --- | --- | --- |
 | instrs | <code>Object</code> | Requested job instructions |
+| jobInfo | <code>Object</code> | Job information data, including postgres 'job_id',                   'attempts', 'requester', and 'priority' |
 
 <a name="Jobber+workerPool"></a>
 

@@ -170,7 +170,7 @@ class Jobber {
      *       for integer job priority (priority 1 has most urgency, default 5).
      *
      * @returns {Promise.<Object>}  A promise that resolves with an object
-     *     with 'results', original 'instrs', and 'jobType' properties 
+     *     with 'results', original 'instrs', 'jobType', and 'priority' properties 
      */
 
     public request(jobType:string, instrs:any, options?:any) {
@@ -223,9 +223,12 @@ class Jobber {
     /**
      * Handler callback
      *
-     * @callback Jobber#handle#handlerCB(instrs)
+     * @callback Jobber#handle#handlerCB(instrs, jobInfo)
      *
      * @param   {Object} instrs - Requested job instructions
+     * @param   {Object} jobInfo - Job information data, including postgres 'job_id', 
+     *                   'attempts', 'requester', and 'priority'
+     *
      * @returns {any|Promise} The job results or a Promise for the results
      */
 
@@ -411,7 +414,7 @@ class Jobber {
             self.logDebug(`Starting ${jobType} job ${jobData.job_id}: ${jobData.instrs}`);
 
             // Invoke worker handler to process job
-            let res = self.jobHandlers[jobType].cb(jobData.instrs);
+            let res = self.jobHandlers[jobType].cb(jobData.instrs, jobData);
             if (res.then instanceof Function) {
                 return res; // it's a promise, so return it
             } else {
