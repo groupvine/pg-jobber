@@ -166,11 +166,11 @@ class Jobber {
      * 
      * @param {string} jobType - String identifying the job type and associated worker pool
      * @param {Object} instr   - Job-specific instructions
-     * @param {Object=} options  - Optional properties are: 'priority' {number}
-     *       Job priority (higher the greater, default 5).
+     * @param {number=} priority  - Optional job priority
+     *       (higher the greater, default 5).
      *
      * @returns {Promise.<Object>}  A promise that resolves with an object
-     *     with 'results' and original 'instrs' properties
+     *     with 'results', original 'instrs', and 'jobType' properties 
      */
 
     public request(jobType:string, instrs:any, priority?:number) {
@@ -434,6 +434,7 @@ class Jobber {
             let jobInfo = {
                 notifyType : 'doneJob',
                 jobId      : jobData.job_id,
+                jobType    : jobType,
                 instrs     : jobData.instrs,
                 results    : jobData.results
             };
@@ -501,7 +502,8 @@ class Jobber {
             // Call the associated resolve() method
             this.pendingJobs[notifyData.jobId].resolve({ 
                 instrs  : notifyData.instrs, 
-                results : notifyData.results
+                results : notifyData.results,
+                jobType : notifyData.jobType
             });
             
             // Remove from pending jobs (so can't resolve again)
