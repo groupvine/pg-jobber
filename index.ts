@@ -33,7 +33,7 @@ class Jobber {
     
     pendingJobs : any;
     jobHandlers : any;
-    jobTimerId  : any;
+    jobTimerIds : any;
 
     /**
      * A Postgres-based job scheduling utility 
@@ -52,7 +52,7 @@ class Jobber {
     constructor (serverId?:string, pgConfig?:any, options?:any) {
         this.pendingJobs = {};
         this.jobHandlers = {};
-        this.jobTimerId  = null;
+        this.jobTimerIds = {};
 
         if (serverId && pgConfig) {
             this.init(serverId, pgConfig, options);
@@ -347,7 +347,7 @@ class Jobber {
     private scheduleWorker(jobType) {
         let _this = this;
 
-        if (this.jobTimerId) {
+        if (this.jobTimerIds[jobType]) {
             return;
         }
 
@@ -357,8 +357,8 @@ class Jobber {
 
         this.logDebug(`Scheduling job ${jobType}`);
 
-        this.jobTimerId = setTimeout(function() {
-            _this.jobTimerId = null;
+        this.jobTimerIds[jobType] = setTimeout(function() {
+            _this.jobTimerIds[jobType] = null;
             _this.logDebug(`Attempting job with ${_this.jobHandlers[jobType].busyJobs.length} busy workers`);
             _this.attemptJob(jobType);
         }, 10);
