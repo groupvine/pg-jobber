@@ -68,7 +68,7 @@ export var claimJobTmpl = "            \
               FOR UPDATE SKIP LOCKED           \
               LIMIT 1) AS row                  \
     WHERE  job_id = row.sel_job_id             \
-    RETURNING job_id, instrs, requester, attempts; \
+    RETURNING job_id, instrs, requester, attempts, priority; \
 ";
 
 // JobState.Completed

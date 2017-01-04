@@ -437,7 +437,8 @@ class Jobber {
                 jobId      : jobData.job_id,
                 jobType    : jobType,
                 instrs     : jobData.instrs,
-                results    : jobData.results
+                results    : jobData.results,
+                priority   : jobData.priority
             };
 
             self.logDebug(`Sending job done for job ${jobData.job_id}`);
@@ -502,9 +503,10 @@ class Jobber {
         } else {
             // Call the associated resolve() method
             this.pendingJobs[notifyData.jobId].resolve({ 
-                instrs  : notifyData.instrs, 
-                results : notifyData.results,
-                jobType : notifyData.jobType
+                instrs   : notifyData.instrs, 
+                results  : notifyData.results,
+                jobType  : notifyData.jobType,
+                priority : notifyData.priority
             });
             
             // Remove from pending jobs (so can't resolve again)
