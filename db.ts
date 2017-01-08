@@ -15,13 +15,14 @@ export var jobTableTmpl = `
         worker    VARCHAR(64),          -- worker ID, for server-restart job recovery
         attempts  INTEGER DEFAULT 0,    -- number of times job processing has been attempted
 
-        requested TIMESTAMP,            -- when requested
-        started   TIMESTAMP,            -- when job was started by a worker
-        completed TIMESTAMP             -- when work completed
+        requested TIMESTAMP WITH TIME ZONE,  -- when requested
+        started   TIMESTAMP WITH TIME ZONE,  -- when job was started by a worker
+        completed TIMESTAMP WITH TIME ZONE   -- when work completed
     );
 `;
 
 export var jobIndexesTmpls = [
+    // Index for job_id automatically created
     "CREATE INDEX job_type_idx  ON pgjobber_jobs (job_type);",
     "CREATE INDEX requester_idx ON pgjobber_jobs (requester);",
     "CREATE INDEX priority_idx  ON pgjobber_jobs (priority);",
