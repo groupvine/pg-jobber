@@ -465,13 +465,16 @@ class Jobber {
 
         }).catch(err => {
             if (err === "no job") {
-                return;  // couldn't claim a job
+                return;  // couldn't claim a job, so don't reschedule worker
             }
 
-            if (jobData) {
+            if (!jobData) {
+                self.scheduleWorker(jobType);
+            } else {
                 self.failedJobCheck(jobType, jobData).then( () => {
                     this.removeFromList(self.jobHandlers[jobType].busyJobs,
                                         jobData.job_id);
+                    self.scheduleWorker(jobType);
                 });
             }
 
@@ -487,7 +490,7 @@ class Jobber {
             if (jobData.attempts < self.jobHandlers[jobType].maxAttempts) {
                 resolve();
             } else {
-                // Update job record as completed with results
+                // Update job record as failed
                 self.db.any(failedJobTmpl, {
                     now     : new Date(),
                     jobId   : jobData.job_id
