@@ -1,6 +1,6 @@
 {
   "name": "pg-jobber",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Postres-based Job Manager",
   "main": "index.js",
   "scripts": {
