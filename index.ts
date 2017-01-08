@@ -249,6 +249,8 @@ class Jobber {
     public handle(jobType:string, handlerCb:any, options:any) : void {
         if (!options) { options = {}; }
 
+        this.logInfo(`Registering job handler for job type ${jobType}`);
+
         if (!jobType) {
             let msg = "Received null jobType in call to Jobber.handle()"
             this.logError(msg);
