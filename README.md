@@ -77,8 +77,8 @@ jobber.handle('calculator', calculator, {maxWorkers : 2});
 **Kind**: global class  
 
 * [Jobber](#Jobber)
-    * [new Jobber([serverId], [pgConfig], [options])](#new_Jobber_new)
-    * [.init(serverId, pgConfig, [options])](#Jobber+init) ⇒ <code>void</code>
+    * [new Jobber([serverId], [pgp], [options])](#new_Jobber_new)
+    * [.init(serverId, pgp, [options])](#Jobber+init) ⇒ <code>void</code>
     * [.request(jobType, instr, [options])](#Jobber+request) ⇒ <code>Promise.&lt;Object&gt;</code>
     * [.handle(jobType, handlerCb, [options])](#Jobber+handle) ⇒ <code>void</code>
         * [.handlerCB(instrs,](#Jobber+handle+handlerCB(instrs,) ⇒ <code>any</code> &#124; <code>Promise</code>
@@ -86,7 +86,7 @@ jobber.handle('calculator', calculator, {maxWorkers : 2});
 
 <a name="new_Jobber_new"></a>
 
-### new Jobber([serverId], [pgConfig], [options])
+### new Jobber([serverId], [pgp], [options])
 A Postgres-based job scheduling utility
 for small-ish server clusters.
 
@@ -98,12 +98,12 @@ with this info).
 | Param | Type |
 | --- | --- |
 | [serverId] | <code>string</code> | 
-| [pgConfig] | <code>Object</code> | 
+| [pgp] | <code>Object</code> | 
 | [options] | <code>Object</code> | 
 
 <a name="Jobber+init"></a>
 
-### jobber.init(serverId, pgConfig, [options]) ⇒ <code>void</code>
+### jobber.init(serverId, pgp, [options]) ⇒ <code>void</code>
 Initialize jobber (if not already done in construction).
 
 **Kind**: instance method of <code>[Jobber](#Jobber)</code>  
@@ -111,7 +111,7 @@ Initialize jobber (if not already done in construction).
 | Param | Type | Description |
 | --- | --- | --- |
 | serverId | <code>string</code> | Unique string identifying this server |
-| pgConfig | <code>Object</code> | Postgres configuration, must include     properties: host {string}, port {number}, database {string},     user {string}, and password {string}. |
+| pgp | <code>Object</code> | pg-promise database connection object. |
 | [options] | <code>Object</code> | Optional configuration info, with     properties: 'logger' {Bunyan compatible logger};     'archiveJobs' {boolean} to archive rather than delete jobs     from queue when done; 'maxWorkers' {integer} for the default     maximum number of simultaneous worker processes per job type (defaults to 1);     'maxAttempts' {number} for the default maximum number of times to     attempt jobs when encountering processing errors (defaults to 3);     'workerPool {string} to allow separating job workers into different     pools (still using same database), e.g., for administrator use,     test servers, or a high-volume customer. |
 
 <a name="Jobber+request"></a>

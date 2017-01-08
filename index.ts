@@ -25,7 +25,6 @@ import {jobTableTmpl,
 
 class Jobber {
     serverId    : string;
-    pgConfig    : any;
     options     : any;
 
     db          : any;
@@ -45,20 +44,19 @@ class Jobber {
      * 
      * @constructor Jobber
      * @param {string=} serverId
-     * @param {Object=} pgConfig
+     * @param {Object=} pgp
      * @param {Object=} options
      */
 
-    constructor (serverId?:string, pgConfig?:any, options?:any) {
+    constructor (serverId?:string, pgp?:any, options?:any) {
         this.pendingJobs = {};
         this.jobHandlers = {};
         this.jobTimerIds = {};
 
-        if (serverId && pgConfig) {
-            this.init(serverId, pgConfig, options);
+        if (serverId && pgp) {
+            this.init(serverId, pgp, options);
         } else {
             this.serverId = null;
-            this.pgConfig = null;
             this.options  = null;
             this.db       = null;
             this.permConn = null;
@@ -72,9 +70,7 @@ class Jobber {
      *
      * @param {string} serverId - Unique string identifying this server
      *
-     * @param {Object} pgConfig - Postgres configuration, must include
-     *     properties: host {string}, port {number}, database {string},
-     *     user {string}, and password {string}.
+     * @param {Object} pgp - pg-promise database connection object.
      *
      * @param {Object=} options  - Optional configuration info, with 
      *     properties: 'logger' {Bunyan compatible logger}; 
@@ -90,11 +86,10 @@ class Jobber {
      * @returns {void}
      */
 
-    public init(serverId:string, pgConfig:any, options?:any) {
+    public init(serverId:string, pgp:any, options?:any) {
         this.serverId = serverId;
-        this.pgConfig = pgConfig;
         this.options  = options ? options : {};
-        this.db       = pgp(pgConfig);
+        this.db       = pgp;
 
         // set defaults
         if (!this.options.maxWorkers) {
