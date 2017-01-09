@@ -29,10 +29,12 @@ To be done once during server startup initialization
 
 ```
 var myId     = "server-10.0.0.17";
-var pgconfig = {host : '10.0.0.11', port : 5432, database : 'mydb', 
-                user : 'postgres', password : 'password'};
+var pgp      = require('pg-promise')();
+var db       = pgp({host : '10.0.0.11', port : 5432, 
+                    database : 'mydb', 
+                    user : 'postgres', password : 'password'});
 
-var jobber   = require('pg-jobber')(myId, pgconfig);
+var jobber   = require('pg-jobber')(myId, db);
 ```
 
 
