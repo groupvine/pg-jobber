@@ -331,7 +331,8 @@ class Jobber {
             break;
 
         case 'doneJob':
-            this.handleDoneJobNotification(notifyData);
+        case 'failedJob':
+            this.handleDoneJobNotification(notifyData, notifyData.notifyType);
             break;
 
         default:
@@ -438,7 +439,8 @@ class Jobber {
                 jobType    : jobType,
                 instrs     : jobData.instrs,
                 results    : jobData.results,
-                priority   : jobData.priority
+                priority   : jobData.priority,
+                state      : JobState.Completed
             };
 
             self.logDebug(`Sending job done for job ${jobData.job_id}`);
@@ -489,14 +491,32 @@ class Jobber {
                 self.db.any(failedJobTmpl, {
                     now     : new Date(),
                     jobId   : jobData.job_id
+
+                }).then( () => {
+                    let jobInfo = {
+                        notifyType : 'failedJob',
+                        jobId      : jobData.job_id,
+                        jobType    : jobType,
+                        instrs     : jobData.instrs,
+                        results    : jobData.results,
+                        priority   : jobData.priority,
+                        state      : JobState.Failed
+                    };
+
+                    self.db.none(sendNotifyTmpl, {
+                        channel : self.serverId2Ch(jobData.requester),
+                        info    : JSON.stringify(jobInfo)
+                    });
+
                 }).then( () => {
                     resolve();
                 });
+
             }
         });
     }
 
-    private handleDoneJobNotification(notifyData:any) {
+    private handleDoneJobNotification(notifyData:any, notifyType:string) {
         let _this   = this;
 
         _this.logDebug(`Rcvd job done for job ${notifyData.jobId}`);
@@ -504,8 +524,15 @@ class Jobber {
         if (! this.pendingJobs[notifyData.jobId]) {
             this.logError(`Rcvd job done for job ${notifyData.jobId} that is not pending for this server (perhaps already serviced, or enqueued prior to a server restart?)`);
         } else {
+            let cbFunc;
+            if (notifyType == 'failedJob') {
+                cbFunc = this.pendingJobs[notifyData.jobId].reject;
+            } else {
+                cbFunc = this.pendingJobs[notifyData.jobId].resolve;
+            }
+
             // Call the associated resolve() method
-            this.pendingJobs[notifyData.jobId].resolve({ 
+            cbFunc({ 
                 instrs   : notifyData.instrs, 
                 results  : notifyData.results,
                 jobType  : notifyData.jobType,
