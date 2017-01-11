@@ -526,15 +526,15 @@ class Jobber {
 
             this.deleteJob(jobId);
         } else {
-            // Remove from pending jobs (so can't resolve again)
-            delete this.pendingJobs[jobId];
-
             let cbFunc;
             if (notifyType == 'failedJob') {
                 cbFunc = this.pendingJobs[jobId].reject;
             } else {
                 cbFunc = this.pendingJobs[jobId].resolve;
             }
+
+            // Remove from pending jobs (so can't resolve again)
+            delete this.pendingJobs[jobId];
 
             self.db.one(getJobTmpl, {jobId : jobId}).then(data => {
                 let results = {
