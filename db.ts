@@ -72,6 +72,12 @@ export var claimJobTmpl = "            \
     RETURNING job_id, job_type, instrs, requester, attempts, priority, requested; \
 ";
 
+export var getJobTmpl = "              \
+   SELECT *                            \
+     FROM pgjobber_jobs                \
+    WHERE job_id = ${jobId}            \
+";
+
 // JobState.Completed
 export var completeJobTmpl = "         \
     UPDATE pgjobber_jobs               \

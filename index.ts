@@ -18,6 +18,7 @@ import {jobTableTmpl,
         sendNotifyTmpl,
         regListenerTmpl,
         claimJobTmpl,
+        getJobTmpl,
         completeJobTmpl,
         archiveJobTmpl,
         failedJobTmpl,
@@ -432,13 +433,13 @@ class Jobber {
             });
             
         }).then( () => {
-            // Notify requester
+            // Notify requester (don't send results or instrs
+            // in case they are large, beyond 8k limit for 
+            // notifications)
             let jobInfo = {
                 notifyType : 'doneJob',
                 jobId      : jobData.job_id,
                 jobType    : jobType,
-                instrs     : jobData.instrs,
-                results    : jobData.results,
                 priority   : jobData.priority,
                 state      : JobState.Completed
             };
@@ -497,8 +498,6 @@ class Jobber {
                         notifyType : 'failedJob',
                         jobId      : jobData.job_id,
                         jobType    : jobType,
-                        instrs     : jobData.instrs,
-                        results    : jobData.results,
                         priority   : jobData.priority,
                         state      : JobState.Failed
                     };
@@ -517,34 +516,44 @@ class Jobber {
     }
 
     private handleDoneJobNotification(notifyData:any, notifyType:string) {
-        let _this   = this;
+        let self   = this;
+        let jobId  = notifyData.jobId;
 
-        _this.logDebug(`Rcvd job done for job ${notifyData.jobId}`);
+        self.logDebug(`Rcvd job done for job ${jobId}`);
 
-        if (! this.pendingJobs[notifyData.jobId]) {
-            this.logError(`Rcvd job done for job ${notifyData.jobId} that is not pending for this server (perhaps already serviced, or enqueued prior to a server restart?)`);
+        if (! this.pendingJobs[jobId]) {
+            this.logError(`Rcvd job done for job ${jobId} that is not pending for this server (perhaps already serviced, or enqueued prior to a server restart?)`);
+
+            this.deleteJob(jobId);
         } else {
+            // Remove from pending jobs (so can't resolve again)
+            delete this.pendingJobs[jobId];
+
             let cbFunc;
             if (notifyType == 'failedJob') {
-                cbFunc = this.pendingJobs[notifyData.jobId].reject;
+                cbFunc = this.pendingJobs[jobId].reject;
             } else {
-                cbFunc = this.pendingJobs[notifyData.jobId].resolve;
+                cbFunc = this.pendingJobs[jobId].resolve;
             }
 
-            // Call the associated resolve() method
-            cbFunc({ 
-                instrs   : notifyData.instrs, 
-                results  : notifyData.results,
-                jobType  : notifyData.jobType,
-                priority : notifyData.priority
+            self.db.one(getJobTmpl, {jobId : jobId}).then(data => {
+                let results = {
+                    instrs   : data.instrs,
+                    results  : data.results,
+                    jobType  : data.job_type,
+                    priority : data.priority,
+                    attempts : data.attempts
+                };
+                cbFunc(results);
+
+                // Delete (or archive) job, no need to
+                // wait for it to be done
+                self.deleteJob(jobId);
             });
-            
-            // Remove from pending jobs (so can't resolve again)
-            delete this.pendingJobs[notifyData.jobId];
         }
+    }
 
-        // Delete job from job queue
-
+    private deleteJob(jobId:number) {
         let tmpl;
         if (this.options.archiveJobs) {
             tmpl = archiveJobTmpl;
@@ -553,7 +562,7 @@ class Jobber {
         }
 
         this.db.none(tmpl, {
-            jobId : notifyData.jobId
+            jobId : jobId
         });
     }
 
