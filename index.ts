@@ -522,7 +522,7 @@ class Jobber {
         self.logDebug(`Rcvd job done for job ${jobId}`);
 
         if (! this.pendingJobs[jobId]) {
-            this.logError(`Rcvd job done for job ${jobId} that is not pending for this server (perhaps already serviced, or enqueued prior to a server restart?)`);
+            this.logError(`Rcvd job done (${notifyType}) for job ${jobId} that is not pending for this server (perhaps already serviced, or enqueued prior to a server restart?)`);
 
             this.deleteJob(jobId);
         } else {
