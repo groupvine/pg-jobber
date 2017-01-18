@@ -571,11 +571,11 @@ class Jobber {
         if (this.options.workerPool) {
             pool = this.options.workerPool + ':';
         }
-        return `${pool}_${jobType}_`;
+        return `pgjobber_${pool}_${jobType}`;
     }
 
     private serverId2Ch(serverId:string) {
-        return `<${serverId}>`;
+        return `<pgjobber_${serverId}>`;
     }
 
     private removeFromList(listValue, value) {
