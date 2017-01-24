@@ -624,7 +624,7 @@ class Jobber {
         let dateFields = ['started', 'requested', 'completed'];
         for (let i = 0; i < dateFields.length; i++) {
             if (dateFields[i] in dbRec) {
-                dateFields[i] = this.db2Date(dateFields[i]);
+                dbRec[dateFields[i]] = this.db2Date(dbRec[dateFields[i]]);
             }
         }
     }
