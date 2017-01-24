@@ -187,7 +187,7 @@ class Jobber {
                 jobType   : jobType,
                 instrs    : JSON.stringify(instrs),
                 priority  : options.priority ? options.priority : 5,
-                now       : now
+                now       : self.date2Db(now)
 
             }).then(data => {
                 self.pendingJobs[data.job_id] = {resolve : resolve, reject : reject};
@@ -390,7 +390,7 @@ class Jobber {
 
         // Try to claim the job (or a job)
         this.db.oneOrNone(claimJobTmpl, {
-            now        : new Date(),
+            now        : this.date2Db(new Date()),
             serverId   : this.serverId,
             jobType    : jobType,
             busyJobIds : busyJobIds
@@ -401,6 +401,8 @@ class Jobber {
                 self.logDebug(`No more ${jobType} jobs, returning`);
                 throw "no job"
             }
+
+            self.fixDbDates(data);
 
             // Set job data.  Be sure busyJobs is set before scheduling 
             // new possible jobs so it's excluded from next job query
@@ -428,7 +430,7 @@ class Jobber {
             // Update job record as completed with results
             return self.db.any(completeJobTmpl, {
                 results : JSON.stringify(res),
-                now     : new Date(),
+                now     : self.date2Db(new Date()),
                 jobId   : jobData.job_id
             });
             
@@ -490,7 +492,7 @@ class Jobber {
             } else {
                 // Update job record as failed
                 self.db.any(failedJobTmpl, {
-                    now     : new Date(),
+                    now     : self.date2Db(new Date()),
                     jobId   : jobData.job_id
 
                 }).then( () => {
@@ -537,6 +539,8 @@ class Jobber {
             delete this.pendingJobs[jobId];
 
             self.db.one(getJobTmpl, {jobId : jobId}).then(data => {
+                self.fixDbDates(data);
+
                 let results = {
                     instrs   : data.instrs,
                     results  : data.results,
@@ -584,6 +588,50 @@ class Jobber {
             listValue.splice(index, 1);
         } 
     }
+
+    //
+    // Database timestamp field handling
+    //
+
+    private date2Db(date:any) : string {
+        // Convert local date to UTC
+        let dbDateStr = date.toUTCString();
+
+        // Then remove the "GMT" so the DB doesn't convert 
+        // it back to local time for storage!
+        dbDateStr = dbDateStr.substring(0, dbDateStr.length - 4);
+        
+        return dbDateStr;
+    }
+
+    private db2Date(dbDate:any) : any {
+        let dbDateStr = dbDate + '';   // convert to string, just in case not
+
+        let matches = dbDateStr.match(/^\s*\"(.+)\"\s*$/);
+        if (matches) {
+            // Remove outside quotes
+            dbDateStr = matches[1];
+        }
+
+        // Add UTC
+        let dateStr = dbDateStr + ' UTC';
+
+        // Return JS Date
+        return new Date(dateStr);
+    }
+
+    private fixDbDates(dbRec:any) {
+        let dateFields = ['started', 'requested', 'completed'];
+        for (let i = 0; i < dateFields.length; i++) {
+            if (dateFields[i] in dbRec) {
+                dateFields[i] = this.db2Date(dateFields[i]);
+            }
+        }
+    }
+
+    //
+    // Logging
+    //
 
     private logError(msg:string, err?:any) {
         if (this.options.logger) {

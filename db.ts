@@ -1,3 +1,14 @@
+// 
+// Regarding TIMESTAMPS, as per suggestion here:
+//   
+//     http://stackoverflow.com/questions/32033114/javascript-postgres-timezone-and-timestamp-usage
+//
+//   All Timestamps are stored without timezones, and in UTC time.  So, 
+//   for storing dates into the database, use: date.toUTCString(), and when
+//   fetching dates from the database, use 'var dt = new Date(dbDateStr + ' UTC').
+//
+//   See Jobber class' db2Date() and date2Db() methods.
+
 import {JobState} from './index';
 
 export var jobTableTmpl = `
@@ -15,9 +26,9 @@ export var jobTableTmpl = `
         worker    VARCHAR(64),          -- worker ID, for server-restart job recovery
         attempts  INTEGER DEFAULT 0,    -- number of times job processing has been attempted
 
-        requested TIMESTAMP WITH TIME ZONE,  -- when requested
-        started   TIMESTAMP WITH TIME ZONE,  -- when job was started by a worker
-        completed TIMESTAMP WITH TIME ZONE   -- when work completed
+        requested TIMESTAMP,            -- when requested
+        started   TIMESTAMP,            -- when job was started by a worker
+        completed TIMESTAMP             -- when work completed
     );
 `;
 
