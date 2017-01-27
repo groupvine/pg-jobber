@@ -211,7 +211,9 @@ class Jobber {
                 // we need to wait for job-done notification
                 return;
             }).catch(err => {
-                self.logError("New job request failed", err);
+                let msg = "Fatal error in scheduling this job request";
+                self.logError(msg, err);
+                reject(msg);
             });
         });
     }
