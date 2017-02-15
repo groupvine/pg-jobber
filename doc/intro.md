@@ -77,7 +77,7 @@ jobber.request("uppercaser", "hello").then(response => {
 
 #### Worker
 
-Registering for a job type and processing jobs:
+Registering for the calculator job type and processing jobs:
 
 ```
 
@@ -96,6 +96,7 @@ function calculator(instrs) {
     return calculate.apply(this, instrs);
 }
 
+// Allow two simultaneous workers
 jobber.handle('calculator', calculator, {maxWorkers : 2});
 ```
 
