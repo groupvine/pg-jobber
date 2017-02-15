@@ -17,8 +17,16 @@ designed for clusters of up to about a dozen job servers per job type.
   differing job priorities, and tracking of job processing
   performance.
 
-**Note that this module will create a "pgjobber_jobs" table in the associated 
+**Note that this module will create a "pgjobber_jobs" table in the referenced
 PostgreSQL database, if not already present.**
+
+### Installation
+
+Using npm, in your project directory:
+
+```
+npm install --save davebeyer/pg-jobber
+```
 
 ## Example Usage
 
@@ -28,29 +36,46 @@ To be done once during server startup initialization
 (same for job requesters and servers).
 
 ```
+// Specify unique id for each server
 var myId     = "server-10.0.0.17";
+
+// Specify connection to your PostgreSQL database
 var pgp      = require('pg-promise')();
 var db       = pgp({host : '10.0.0.11', port : 5432, 
                     database : 'mydb', 
                     user : 'postgres', password : 'password'});
 
+// Initialize pg-jobber
 var jobber   = require('pg-jobber')(myId, db);
 ```
 
 
-### Requester
+### UpperCaser Example 
 
-Issuing a job request:
+#### Worker
+
+Registering for the uppercaser job type and processing jobs:
 
 ```
-jobber.request("calculator", [5, '+', [2, '*', 3]]).then(response => {
-    console.info(`5 + (2 x 3) = ${response.results}`);
+jobber.handle('uppercaser', (instrs) => { return instrs.toUpperCase(); })
+```
+
+#### Requester
+
+Issuing an uppercaser job request:
+
+```
+jobber.request("uppercaser", "hello").then(response => {
+    console.info(`hello -> ${response.results}`);
 }).catch(err => {
-    console.error("Calculator job request failed with error:", err);
+    console.error("Uppercaser job request failed with error:", err);
 });
 ```
 
-### Job Worker
+
+### Calculator Example
+
+#### Worker
 
 Registering for a job type and processing jobs:
 
@@ -58,8 +83,8 @@ Registering for a job type and processing jobs:
 
 function calculator(instrs) {
     function calculate(num1:any, op:string, num2:any) {
-        if (Array.isArray(num1)) { num1 = calculate(num1); }
-        if (Array.isArray(num2)) { num2 = calculate(num2); }
+        if (Array.isArray(num1)) { num1 = calculate.apply(this, num1); }
+        if (Array.isArray(num2)) { num2 = calculate.apply(this, num2); }
 
         if (typeof num1 !== 'number' || typeof num2 !== 'number' || !op.match(/[\+\-\*\/]/)) {
             throw `Invalid operation: ${num1} ${op} ${num2}`
@@ -68,10 +93,22 @@ function calculator(instrs) {
         return eval(num1 + op + num2);
     }
 
-    return calculate(instrs);
+    return calculate.apply(this, instrs);
 }
 
 jobber.handle('calculator', calculator, {maxWorkers : 2});
+```
+
+#### Requester
+
+Issuing a calculator job request:
+
+```
+jobber.request("calculator", [5, '+', [2, '*', 3]]).then(response => {
+    console.info(`5 + (2 x 3) = ${response.results}`);
+}).catch(err => {
+    console.error("Calculator job request failed with error:", err);
+});
 ```
 <a name="Jobber"></a>
 

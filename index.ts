@@ -227,7 +227,12 @@ class Jobber {
      * @param   {Object} jobInfo - Job information data, including postgres 'job_id', 
      *                   'attempts', 'requester', and 'priority'
      *
-     * @returns {any|Promise} The job results or a Promise for the results
+     * @returns {any|Promise} The worker's response object or a Promise to the 
+     *          response, with the job results in the 'results' property. 
+     *          Other properties are: 
+     *             'attempts' for the number of attempts required, and
+     *             'instrs', 'jobType', and 'priority' with the job's original 
+     *              job type, instructions, and priority.
      */
 
     /**
