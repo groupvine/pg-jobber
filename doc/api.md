@@ -75,7 +75,12 @@ Register a handler for a particular job type
 Handler callback
 
 **Kind**: instance typedef of <code>[handle](#Jobber+handle)</code>  
-**Returns**: <code>any</code> &#124; <code>Promise</code> - The job results or a Promise for the results  
+**Returns**: <code>any</code> &#124; <code>Promise</code> - The worker's response object or a Promise to the
+         response, with the job results in the 'results' property.
+         Other properties are:
+            'attempts' for the number of attempts required, and
+            'instrs', 'jobType', and 'priority' with the job's original
+             job type, instructions, and priority.  
 
 | Param | Type | Description |
 | --- | --- | --- |
