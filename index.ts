@@ -28,6 +28,8 @@ class Jobber {
     serverId    : string;
     options     : any;
 
+    isReady     : boolean;
+
     db          : any;
     permConn    : any;   // permanent connection used to listen for notifications
     
@@ -53,6 +55,8 @@ class Jobber {
         this.pendingJobs = {};
         this.jobHandlers = {};
         this.jobTimerIds = {};
+
+        this.isReady     = false;
 
         if (serverId && pgp) {
             this.init(serverId, pgp, options);
@@ -146,6 +150,7 @@ class Jobber {
                 return Promise.all(promises);
 
             }).then( () => {
+                _this.isReady = true;
                 resolve();
 
             }).catch(err => {
@@ -226,6 +231,7 @@ class Jobber {
      * @param   {Object} instrs - Requested job instructions
      * @param   {Object} jobInfo - Job information data, including postgres 'job_id', 
      *                   'attempts', 'requester', and 'priority'
+     *
      *
      * @returns {any|Promise} The worker's response object or a Promise to the 
      *          response, with the job results in the 'results' property. 
@@ -369,9 +375,14 @@ class Jobber {
 
         this.jobTimerIds[jobType] = setTimeout(function() {
             _this.jobTimerIds[jobType] = null;
-            _this.logDebug(`Attempting job with ${_this.jobHandlers[jobType].busyJobs.length} busy workers`);
-            _this.attemptJob(jobType);
-        }, 10);
+            if (_this.isReady) {
+                _this.logDebug(`Attempting job with ${_this.jobHandlers[jobType].busyJobs.length} busy workers`);
+                _this.attemptJob(jobType);
+            } else {
+                // waiting for service ready, reschedule
+                _this.scheduleWorker(jobType);
+            }
+        }, this.isReady ? 10 : 200);
     }
 
     private attemptJob(jobType:string) {
@@ -401,6 +412,12 @@ class Jobber {
             serverId   : this.serverId,
             jobType    : jobType,
             busyJobIds : busyJobIds
+
+        }).catch( err => {
+
+            let msg = `Error trying to claim job type ${jobType}`;
+            self.logError(msg, err);
+            throw(msg);
 
         }).then(data => {
             if (!data) {
@@ -463,7 +480,7 @@ class Jobber {
         }).then( () => {
             // done, try to get another job
             if (jobData) {
-                this.removeFromList(self.jobHandlers[jobType].busyJobs,
+                self.removeFromList(self.jobHandlers[jobType].busyJobs,
                                     jobData.job_id);
             }
 
@@ -479,13 +496,13 @@ class Jobber {
                 self.scheduleWorker(jobType);
             } else {
                 self.failedJobCheck(jobType, jobData).then( () => {
-                    this.removeFromList(self.jobHandlers[jobType].busyJobs,
+                    self.removeFromList(self.jobHandlers[jobType].busyJobs,
                                         jobData.job_id);
                     self.scheduleWorker(jobType);
                 });
             }
 
-            self.logError(`Error processing job ${jobData.job_id}`, err);
+            self.logError(`Error processing job ${jobData ? jobData.job_id : '?'}`, err);
         });
         
     }
