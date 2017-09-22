@@ -550,7 +550,7 @@ class Jobber {
         if (! this.pendingJobs[jobId]) {
             this.logError(`Rcvd job done (${notifyType}) for job ${jobId} that is not pending for this server (perhaps already serviced, or enqueued prior to a server restart?)`);
 
-            this.deleteJob(jobId);
+            this.deleteJob(jobId, notifyType);
         } else {
             let cbFunc;
             if (notifyType == 'failedJob') {
@@ -576,12 +576,17 @@ class Jobber {
 
                 // Delete (or archive) job, no need to
                 // wait for it to be done
-                self.deleteJob(jobId);
+                self.deleteJob(jobId, notifyType);
             });
         }
     }
 
-    private deleteJob(jobId:number) {
+    private deleteJob(jobId:number, notifyType:string) {
+        if (notifyType == 'failedJob') {
+            // Leave 'failed' status as is
+            return;
+        }
+
         let tmpl;
         if (this.options.archiveJobs) {
             tmpl = archiveJobTmpl;
