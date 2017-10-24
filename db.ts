@@ -9,7 +9,7 @@
 //
 //   See Jobber class' db2Date() and date2Db() methods.
 
-import {JobState} from './index';
+// import {JobState} from "./index";
 
 export var jobTableTmpl = `
     CREATE TABLE pgjobber_jobs (

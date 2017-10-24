@@ -2,8 +2,6 @@ declare var Promise:any;
 declare var require:any;
 declare var module:any;
 
-var pgp = require('pg-promise')();
-
 export enum JobState {
     New        = 0,
     Processing = 1,
@@ -32,7 +30,7 @@ class Jobber {
 
     db          : any;
     permConn    : any;   // permanent connection used to listen for notifications
-    
+
     pendingJobs : any;
     jobHandlers : any;
     jobTimerIds : any;
@@ -47,19 +45,19 @@ class Jobber {
      * 
      * @constructor Jobber
      * @param {string=} serverId
-     * @param {Object=} pgp
+     * @param {Object=} pg
      * @param {Object=} options
      */
 
-    constructor (serverId?:string, pgp?:any, options?:any) {
+    constructor (serverId?:string, pg?:any, options?:any) {
         this.pendingJobs = {};
         this.jobHandlers = {};
         this.jobTimerIds = {};
 
         this.isReady     = false;
 
-        if (serverId && pgp) {
-            this.init(serverId, pgp, options);
+        if (serverId && pg) {
+            this.init(serverId, pg, options);
         } else {
             this.serverId = null;
             this.options  = null;
@@ -75,7 +73,7 @@ class Jobber {
      *
      * @param {string} serverId - Unique string identifying this server
      *
-     * @param {Object} pgp - pg-promise database connection object.
+     * @param {Object} pg - pg-promise database connection object.
      *
      * @param {Object=} options  - Optional configuration info, with 
      *     properties: 'logger' {Bunyan compatible logger}; 
@@ -91,10 +89,10 @@ class Jobber {
      * @returns {void}
      */
 
-    public init(serverId:string, pgp:any, options?:any) {
+    public init(serverId:string, pg:any, options?:any) {
         this.serverId = serverId;
         this.options  = options ? options : {};
-        this.db       = pgp;
+        this.db       = pg;
 
         // set defaults
         if (!this.options.maxWorkers) {
@@ -118,8 +116,8 @@ class Jobber {
                 return _this.initDB();
 
             }).then( created => {
-                if (created) { 
-                    _this.logInfo("Jobs table (pgjobber_jobs) created"); 
+                if (created) {
+                    _this.logInfo("Jobs table (pgjobber_jobs) created");
                 }
 
                 return _this.db.connect({direct : true});   // get a permanent connection
@@ -180,7 +178,7 @@ class Jobber {
         let now   = new Date();
 
         if (!jobType) {
-            let msg = "Received null jobType in call to Jobber.request()"
+            let msg = "Received null jobType in call to Jobber.request()";
             this.logError(msg);
             throw Error(msg);
         }
@@ -197,10 +195,10 @@ class Jobber {
             }).then(data => {
                 self.pendingJobs[data.job_id] = {resolve : resolve, reject : reject};
 
-                let jobInfo = { 
+                let jobInfo = {
                     notifyType : 'newJob',
-                    jobId      : data.job_id, 
-                    jobType    : jobType 
+                    jobId      : data.job_id,
+                    jobType    : jobType
                 };
 
                 // always stringify payload, so can always JSON.parse()
@@ -208,7 +206,7 @@ class Jobber {
                 // is already a string or not.
                 return self.db.none(sendNotifyTmpl, {
                     channel : self.jobType2Ch(jobType),
-                    info    : JSON.stringify(jobInfo)   
+                    info    : JSON.stringify(jobInfo)
                 });
 
             }).then( () => {
@@ -229,16 +227,16 @@ class Jobber {
      * @callback Jobber#handle#handlerCB(instrs, jobInfo)
      *
      * @param   {Object} instrs - Requested job instructions
-     * @param   {Object} jobInfo - Job information data, including postgres 'job_id', 
+     * @param   {Object} jobInfo - Job information data, including postgres 'job_id',
      *                   'attempts', 'requester', and 'priority'
      *
      *
-     * @returns {any|Promise} The worker's response object or a Promise to the 
+     * @returns {any|Promise} The worker's response object or a Promise to the
      *          response, with the job results in the 'results' property.
      *          (If the job failed, then results.error contains an error object, with
-     *           at least error.message.) Other properties are: 
+     *           at least error.message.) Other properties are:
      *             'attempts' for the number of attempts required, and
-     *             'instrs', 'jobType', and 'priority' with the job's original 
+     *             'instrs', 'jobType', and 'priority' with the job's original
      *              job type, instructions, and priority.
      */
 
@@ -262,14 +260,14 @@ class Jobber {
         this.logInfo(`Registering job handler for job type ${jobType}`);
 
         if (!jobType) {
-            let msg = "Received null jobType in call to Jobber.handle()"
+            let msg = "Received null jobType in call to Jobber.handle()";
             this.logError(msg);
             throw Error(msg);
         }
 
         // Register this server as a handler for this jobType
         this.jobHandlers[jobType] = {
-            cb          : handlerCb, 
+            cb          : handlerCb,
             busyJobs    : [],
             maxWorkers  : options.maxWorkers  ? options.maxWorkers  : this.options.maxWorkers,
             maxAttempts : options.maxAttempts ? options.maxAttempts : this.options.maxAttempts
@@ -300,7 +298,7 @@ class Jobber {
         if (this.options.workerPool) {
             return this.options.workerPool;
         } else {
-            return null;   
+            return null;
         }
     }
 
@@ -335,13 +333,12 @@ class Jobber {
     private handleNotification(notification:any) {
         // this.logInfo("Received notification: " + JSON.stringify(notification));
 
-        let _this      = this;
         let notifyData = JSON.parse(notification.payload);
 
         switch (notifyData.notifyType) {
 
         case 'newJob':
-            let jobType = notifyData.jobType
+            let jobType = notifyData.jobType;
             this.scheduleWorker(jobType);
             break;
 
@@ -356,8 +353,8 @@ class Jobber {
     }
 
     private availWorkers(jobType) {
-        return Math.max(this.jobHandlers[jobType].maxWorkers - 
-                        this.jobHandlers[jobType].busyJobs.length, 
+        return Math.max(this.jobHandlers[jobType].maxWorkers -
+                        this.jobHandlers[jobType].busyJobs.length,
                         0);
     }
 
@@ -369,7 +366,7 @@ class Jobber {
         }
 
         if (! this.availWorkers(jobType)) {
-            return; 
+            return;
         }
 
         this.logDebug(`Scheduling job ${jobType}`);
@@ -404,7 +401,7 @@ class Jobber {
 
         if (!busyJobIds.length) {
             // So query doesn't break (0 is an invalid job_id)
-            busyJobIds = [0];   
+            busyJobIds = [0];
         }
 
         // Try to claim the job (or a job)
@@ -424,7 +421,7 @@ class Jobber {
             if (!data) {
                 // unable to claim a job, just throw a coded exception
                 self.logDebug(`No more ${jobType} jobs, returning`);
-                throw "no job"
+                throw "no job";
             }
 
             self.fixDbDates(data);
@@ -433,7 +430,7 @@ class Jobber {
             // new possible jobs so it's excluded from next job query
             jobData = data;
             self.jobHandlers[jobType].busyJobs.push(jobData.job_id);
-            
+
             // We got a job, so schedule a check for more concurrent jobs
             self.scheduleWorker(jobType);
 
@@ -458,7 +455,7 @@ class Jobber {
                 now     : self.date2Db(new Date()),
                 jobId   : jobData.job_id
             });
-            
+
         }).then( () => {
             // Notify requester (don't send results or instrs
             // in case they are large, beyond 8k limit for 
@@ -509,7 +506,6 @@ class Jobber {
 
             self.logError(`Error processing job ${jobData ? jobData.job_id : '?'}`, jobErr);
         });
-        
     }
 
     private failedJobCheck(jobType:string, jobData:any, err:any) {
@@ -554,12 +550,13 @@ class Jobber {
         self.logDebug(`Rcvd job done for job ${jobId}`);
 
         if (! this.pendingJobs[jobId]) {
-            this.logError(`Rcvd job done (${notifyType}) for job ${jobId} that is not pending for this server (perhaps already serviced, or enqueued prior to a server restart?)`);
+            this.logError(`Rcvd job done (${notifyType}) for job ${jobId} that is not pending for this server ` +
+                          `(perhaps already serviced, or enqueued prior to a server restart?)`);
 
             this.deleteJob(jobId, notifyType);
         } else {
             let cbFunc;
-            if (notifyType == 'failedJob') {
+            if (notifyType === 'failedJob') {
                 cbFunc = this.pendingJobs[jobId].reject;
             } else {
                 cbFunc = this.pendingJobs[jobId].resolve;
@@ -588,7 +585,7 @@ class Jobber {
     }
 
     private deleteJob(jobId:number, notifyType:string) {
-        if (notifyType == 'failedJob') {
+        if (notifyType === 'failedJob') {
             // Leave 'failed' status as is
             return;
         }
@@ -621,7 +618,7 @@ class Jobber {
         let index = listValue.indexOf(value);
         if (index > -1) {
             listValue.splice(index, 1);
-        } 
+        }
     }
 
     //
@@ -635,7 +632,7 @@ class Jobber {
         // Then remove the "GMT" so the DB doesn't convert 
         // it back to local time for storage!
         dbDateStr = dbDateStr.substring(0, dbDateStr.length - 4);
-        
+
         return dbDateStr;
     }
 
@@ -683,12 +680,12 @@ class Jobber {
             console.log(msg);
         }
     }
- 
+
     private logDebug(msg:string) {
         if (this.options.logger) {
             this.options.logger.debug(msg);
         } else {
-            console.debug(msg);
+            console.log(msg);
         }
     }
 }
@@ -696,4 +693,4 @@ class Jobber {
 
 module.exports = function(serverId, pgsql) {
     return new Jobber(serverId, pgsql);
-}
+};
