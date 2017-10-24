@@ -517,7 +517,7 @@ class Jobber {
             } else {
                 // Update job record as failed
                 self.db.any(failedJobTmpl, {
-                    results : JSON.stringify(err),
+                    results : JSON.stringify({error : err}),
                     now     : self.date2Db(new Date()),
                     jobId   : jobData.job_id
 
