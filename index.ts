@@ -39,7 +39,7 @@ class Jobber {
 
     /**
      * A Postgres-based job scheduling utility 
-     * for small-ish server clusters.
+     * for small- to medium-sized server clusters.
      *
      * Constructor, optionally invoked with serverId and 
      * Postgres configuration data (otherwise, must call .init() 
@@ -234,8 +234,9 @@ class Jobber {
      *
      *
      * @returns {any|Promise} The worker's response object or a Promise to the 
-     *          response, with the job results in the 'results' property. 
-     *          Other properties are: 
+     *          response, with the job results in the 'results' property.
+     *          (If the job failed, then results.error contains an error object, with
+     *           at least error.message.) Other properties are: 
      *             'attempts' for the number of attempts required, and
      *             'instrs', 'jobType', and 'priority' with the job's original 
      *              job type, instructions, and priority.
@@ -487,27 +488,31 @@ class Jobber {
             self.scheduleWorker(jobType);
             return;
 
-        }).catch(err => {
-            if (err === "no job") {
+        }).catch(jobErr => {
+            if (jobErr === "no job") {
                 return;  // couldn't claim a job, so don't reschedule worker
+            }
+
+            if (jobErr.message == null) {
+                jobErr = { message : jobErr.toString() };
             }
 
             if (!jobData) {
                 self.scheduleWorker(jobType);
             } else {
-                self.failedJobCheck(jobType, jobData).then( () => {
+                self.failedJobCheck(jobType, jobData, jobErr).then( () => {
                     self.removeFromList(self.jobHandlers[jobType].busyJobs,
                                         jobData.job_id);
                     self.scheduleWorker(jobType);
                 });
             }
 
-            self.logError(`Error processing job ${jobData ? jobData.job_id : '?'}`, err);
+            self.logError(`Error processing job ${jobData ? jobData.job_id : '?'}`, jobErr);
         });
         
     }
 
-    private failedJobCheck(jobType:string, jobData:any) {
+    private failedJobCheck(jobType:string, jobData:any, err:any) {
         let self = this;
 
         return new Promise( (resolve, reject) => {
@@ -516,6 +521,7 @@ class Jobber {
             } else {
                 // Update job record as failed
                 self.db.any(failedJobTmpl, {
+                    results : JSON.stringify(err),
                     now     : self.date2Db(new Date()),
                     jobId   : jobData.job_id
 

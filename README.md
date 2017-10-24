@@ -128,7 +128,7 @@ jobber.request("calculator", [5, '+', [2, '*', 3]]).then(response => {
 
 ### new Jobber([serverId], [pgp], [options])
 A Postgres-based job scheduling utility
-for small-ish server clusters.
+for small- to medium-sized server clusters.
 
 Constructor, optionally invoked with serverId and
 Postgres configuration data (otherwise, must call .init()
@@ -190,7 +190,8 @@ Handler callback
 **Kind**: instance typedef of <code>[handle](#Jobber+handle)</code>  
 **Returns**: <code>any</code> &#124; <code>Promise</code> - The worker's response object or a Promise to the
          response, with the job results in the 'results' property.
-         Other properties are:
+         (If the job failed, then results.error contains an error object, with
+          at least error.message.) Other properties are:
             'attempts' for the number of attempts required, and
             'instrs', 'jobType', and 'priority' with the job's original
              job type, instructions, and priority.  
