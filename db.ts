@@ -114,7 +114,7 @@ export var archiveJobTmpl = "           \
 export var failedJobTmpl = "           \
     UPDATE pgjobber_jobs               \
     SET    job_state = 4,              \
-           completed = ${now}          \
+           completed = ${now},          \
            results   = ${results}::jsonb  \
     WHERE  job_id = ${jobId};          \
 ";
