@@ -413,7 +413,7 @@ class Jobber {
 
         }).catch( err => {
 
-            let msg = `Error with server ${self.serverId} trying to claim job type ${jobType} with busyJobIds ${busyJobIds}`;
+            let msg = `Error with server ${self.serverId} trying to claim job type: ${jobType} and with busyJobIds: ${busyJobIds}`;
             self.logError(msg, err);
             throw(msg);
 
