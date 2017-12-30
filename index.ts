@@ -399,7 +399,7 @@ class Jobber {
 
         let busyJobIds = this.jobHandlers[jobType].busyJobs;
 
-        if (!busyJobIds.length) {
+        if ( (busyJobIds == null) || (busyJobIds.length === 0) ) {
             // So query doesn't break (0 is an invalid job_id)
             busyJobIds = [0];
         }
