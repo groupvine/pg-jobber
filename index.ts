@@ -412,8 +412,8 @@ class Jobber {
             busyJobIds : busyJobIds
 
         }).catch( err => {
-
-            let msg = `Error with server ${self.serverId} trying to claim job type: ${jobType} and with busyJobIds: ${busyJobIds}`;
+            let len = busyJobIds ? busyJobIds.length : '(null busyJobIds)';
+            let msg = `Error with server ${self.serverId} trying to claim job type: ${jobType} and with busyJobIds: ${busyJobIds} typeof: ${typeof busyJobIds} len: ${len}`;
             self.logError(msg, err);
             throw(msg);
 
