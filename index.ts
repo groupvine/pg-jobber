@@ -402,6 +402,9 @@ class Jobber {
         if ( (busyJobIds == null) || (busyJobIds.length === 0) ) {
             // So query doesn't break (0 is an invalid job_id)
             busyJobIds = [0];
+        } else {
+            // Create a copy in case the array is changed by another thread while issuing the DB query
+            busyJobIds = JSON.parse(JSON.stringify(busyJobIds));
         }
 
         // Try to claim the job (or a job)
@@ -413,7 +416,8 @@ class Jobber {
 
         }).catch( err => {
             let len = busyJobIds ? busyJobIds.length : '(null busyJobIds)';
-            let msg = `Error with server ${self.serverId} trying to claim job type: ${jobType} and with busyJobIds: ${busyJobIds} typeof: ${typeof busyJobIds} len: ${len}`;
+            let msg = `Error with server ${self.serverId} trying to claim job type: ${jobType} and ` +
+                      `with busyJobIds: ${JSON.stringify(busyJobIds)}; len: ${len}`;
             self.logError(msg, err);
             throw(msg);
 
