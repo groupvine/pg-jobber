@@ -417,7 +417,7 @@ class Jobber {
         }).catch( err => {
             let len = busyJobIds ? busyJobIds.length : '(null busyJobIds)';
             let msg = `Error with server ${self.serverId} trying to claim job type: ${jobType} and ` +
-                      `with busyJobIds: ${JSON.stringify(busyJobIds)}; len: ${len}`;
+                `with busyJobIds: ${JSON.stringify(busyJobIds)}; len: ${len}`;
             self.logError(msg, err);
             throw(msg);
 
@@ -670,6 +670,14 @@ class Jobber {
     //
 
     private logError(msg:string, err?:any) {
+        // Note that if both an error handler and logger are 
+        // provided, could end up with some redundant output
+        // if the error handler also logs the error
+
+        if (this.options.errorHandler) {
+            this.options.errorHandler(msg, err);
+        } 
+
         if (this.options.logger) {
             this.options.logger.error({err : err}, msg);
         } else {
