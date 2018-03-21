@@ -82,9 +82,11 @@ class Jobber {
      *     maximum number of simultaneous worker processes per job type (defaults to 1); 
      *     'maxAttempts' {number} for the default maximum number of times to
      *     attempt jobs when encountering processing errors (defaults to 3); 
-     *     'workerPool {string} to allow separating job workers into different
+     *     'workerPool' {string} to allow separating job workers into different
      *     pools (still using same database), e.g., for administrator use, 
-     *     test servers, or a high-volume customer.
+     *     test servers, or a high-volume customer; 'errorHandler(msg, err?)' {function} 
+     *     callback function for errors getting passed an error msg and possibly an 
+     *     Error object.
      *
      * @returns {void}
      */
