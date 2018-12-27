@@ -28,9 +28,8 @@
   },
   "homepage": "https://github.com/davebeyer/pg-jobber#readme",
   "dependencies": {
-    "pg-promise": "^8.5.4"
+    "pg-promise": "^8.5.4",
+    "typescript": "^2.3.4"
   },
-  "devDependencies": {
-    "typescript": "^2.1.4"
-  }
+  "devDependencies": {}
 }
