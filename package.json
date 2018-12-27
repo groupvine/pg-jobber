@@ -9,7 +9,7 @@
     "build:src": "./node_modules/.bin/tsc *.ts --sourceMap --module commonjs",
     "build": "npm run build:src",
     "build:all": "npm run build:src && npm run build:doc",
-    "postinstall" : "npm run build:src"
+    "postinstall": "npm run build:src"
   },
   "repository": {
     "type": "git",
@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/davebeyer/pg-jobber#readme",
   "dependencies": {
-    "pg-promise": "^5.5.0"
+    "pg-promise": "^8.5.4"
   },
   "devDependencies": {
     "typescript": "^2.1.4"

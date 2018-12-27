@@ -152,7 +152,7 @@ Initialize jobber (if not already done in construction).
 | --- | --- | --- |
 | serverId | <code>string</code> | Unique string identifying this server |
 | pg | <code>Object</code> | pg-promise database connection object. |
-| [options] | <code>Object</code> | Optional configuration info, with     properties: 'logger' {Bunyan compatible logger};     'archiveJobs' {boolean} to archive rather than delete jobs     from queue when done; 'maxWorkers' {integer} for the default     maximum number of simultaneous worker processes per job type (defaults to 1);     'maxAttempts' {number} for the default maximum number of times to     attempt jobs when encountering processing errors (defaults to 3);     'workerPool {string} to allow separating job workers into different     pools (still using same database), e.g., for administrator use,     test servers, or a high-volume customer. |
+| [options] | <code>Object</code> | Optional configuration info, with     properties: 'logger' {Bunyan compatible logger};     'archiveJobs' {boolean} to archive rather than delete jobs     from queue when done; 'maxWorkers' {integer} for the default     maximum number of simultaneous worker processes per job type (defaults to 1);     'maxAttempts' {number} for the default maximum number of times to     attempt jobs when encountering processing errors (defaults to 3);     'workerPool' {string} to allow separating job workers into different     pools (still using same database), e.g., for administrator use,     test servers, or a high-volume customer; 'errorHandler(msg, err?)' {function}     callback function for errors getting passed an error msg and possibly an     Error object. |
 
 <a name="Jobber+request"></a>
 
