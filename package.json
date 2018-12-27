@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:doc": "jsdoc2md *.js --no-cache > doc/api.md; cat doc/intro.md doc/api.md > README.md",
-    "build:src": "./node_modules/.bin/tsc *.ts --sourceMap --module commonjs",
+    "build:src": "./node_modules/.bin/tsc -p tsconfig.json",
     "build": "npm run build:src",
     "build:all": "npm run build:src && npm run build:doc",
     "postinstall": "npm run build:src"
