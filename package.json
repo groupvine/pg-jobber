@@ -9,7 +9,8 @@
     "build:src": "./node_modules/.bin/tsc -p tsconfig.json",
     "build": "npm run build:src",
     "build:all": "npm run build:src && npm run build:doc",
-    "postinstall": "npm run build:src"
+    "postinstall": "npm run build:src",
+    "lint": "tslint -t verbose -e './**/node_modules/**'  './**/*.ts' ; exit 0"
   },
   "repository": {
     "type": "git",
