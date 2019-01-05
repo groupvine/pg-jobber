@@ -10,7 +10,8 @@
     "build": "npm run build:src",
     "build:all": "npm run build:src && npm run build:doc",
     "postinstall": "npm run build:src",
-    "lint": "tslint -t verbose -e './**/node_modules/**'  './**/*.ts' ; exit 0"
+    "lint": "tslint -t verbose -e './**/node_modules/**'  './**/*.ts' ; exit 0",
+    "reinstall": "rm -rf node_modules && npm install"
   },
   "repository": {
     "type": "git",
