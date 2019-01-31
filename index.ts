@@ -507,6 +507,9 @@ class Jobber {
                     self.removeFromList(self.jobHandlers[jobType].busyJobs,
                                         jobData.job_id);
                     self.scheduleWorker(jobType);
+                }).catch( err => {
+                    self.logError(`Error in failedJobCheck()!? ${jobData ? jobData.job_id : '?'}`, err);
+                    throw(err);
                 });
             }
 
@@ -543,8 +546,10 @@ class Jobber {
 
                 }).then( () => {
                     resolve();
-                });
 
+                }).catch( err2 => {
+                    reject(err2);
+                });
             }
         });
     }
@@ -586,6 +591,9 @@ class Jobber {
                 // Delete (or archive) job, no need to
                 // wait for it to be done
                 self.deleteJob(jobId, notifyType);
+
+            }).catch( err => {
+                throw(err);
             });
         }
     }
