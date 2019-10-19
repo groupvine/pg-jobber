@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/davebeyer/pg-jobber.git"
+    "url": "git+https://github.com/groupvine/pg-jobber.git"
   },
   "keywords": [
     "Job",
@@ -26,9 +26,9 @@
   "author": "Dave Beyer",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/davebeyer/pg-jobber/issues"
+    "url": "https://github.com/groupvine/pg-jobber/issues"
   },
-  "homepage": "https://github.com/davebeyer/pg-jobber#readme",
+  "homepage": "https://github.com/groupvine/pg-jobber#readme",
   "dependencies": {
     "pg-promise": "^8.5.4",
     "typescript": "^2.3.4"
