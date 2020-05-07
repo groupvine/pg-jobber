@@ -22,7 +22,7 @@ export var jobTableTmpl = `
         instrs    JSONB   NOT NULL,     -- job instructions
         results   JSONB,                -- job results
 
-        job_state INTEGER NOT NULL,     -- 0 pending, 1 in process, 2 completed
+        job_state INTEGER NOT NULL,     -- 0 pending, 1 in process, 2 completed, 3 archived, 4 failed, 5 terminated
         worker    VARCHAR(64),          -- worker ID, for server-restart job recovery
         attempts  INTEGER DEFAULT 0,    -- number of times job processing has been attempted
 
@@ -117,4 +117,15 @@ export var failedJobTmpl = "           \
            completed = ${now},          \
            results   = ${results}::jsonb  \
     WHERE  job_id = ${jobId};          \
+";
+
+// JobState.Terminated
+export var initCleanupTmpl = "           \
+    UPDATE pgjobber_jobs                 \
+    SET    job_state = 5,                \
+           completed = ${now},           \
+           results   = NULL              \
+    WHERE  worker    = ${serverId} AND   \
+           started   < ${startLimit} AND \
+           completed IS NULL;            \
 ";

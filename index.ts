@@ -7,7 +7,8 @@ export enum JobState {
     Processing = 1,
     Completed  = 2,
     Archived   = 3,
-    Failed     = 4
+    Failed     = 4,
+    Terminated = 5
 };
 
 import {jobTableTmpl,
@@ -15,6 +16,7 @@ import {jobTableTmpl,
         newJobTmpl,
         sendNotifyTmpl,
         regListenerTmpl,
+        initCleanupTmpl,
         claimJobTmpl,
         getJobTmpl,
         completeJobTmpl,
@@ -150,6 +152,11 @@ class Jobber {
                 return Promise.all(promises);
 
             }).then( () => {
+
+                return _this.initJobCleanup();
+
+            }).then( () => {
+                
                 _this.isReady = true;
                 resolve();
 
@@ -157,6 +164,28 @@ class Jobber {
                 _this.logError("pg-jobber init failed", err);
                 reject();
             });
+        });
+    }
+
+    /**
+     * Cleanup stale/failed jobs that were started previously on
+     * this server.
+     */
+
+    private initJobCleanup() {
+        let startLimit = new Date();
+        startLimit.setMinutes(startLimit.getMinutes() - 2); // handles negatives properly
+
+        let startStr = startLimit.toISOString();
+        let i = startStr.indexOf('.');
+        if (i !== -1) {
+            startStr = startStr.substring(0, i);
+        }
+        console.log("CLEANUP ", startStr);
+        return this.db.any(initCleanupTmpl, {
+            serverId   : this.serverId,
+            startLimit : startStr,
+            now        : this.date2Db(new Date())
         });
     }
 
@@ -516,7 +545,7 @@ class Jobber {
             self.logError(`Error processing job ${jobData ? jobData.job_id : '?'}`, jobErr);
         });
     }
-
+        
     private failedJobCheck(jobType:string, jobData:any, err:any) {
         let self = this;
 
@@ -554,6 +583,7 @@ class Jobber {
         });
     }
 
+    
     private handleDoneJobNotification(notifyData:any, notifyType:string) {
         let self   = this;
         let jobId  = notifyData.jobId;
