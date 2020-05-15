@@ -181,7 +181,6 @@ class Jobber {
         if (i !== -1) {
             startStr = startStr.substring(0, i);
         }
-        console.log("CLEANUP ", startStr);
         return this.db.any(initCleanupTmpl, {
             serverId   : this.serverId,
             startLimit : startStr,
