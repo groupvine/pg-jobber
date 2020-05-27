@@ -126,6 +126,14 @@ export var failedJobTmpl = "           \
     WHERE  job_id = ${jobId};          \
 ";
 
+// JobState.Expired
+export var expiredJobTmpl = "          \
+    UPDATE pgjobber_jobs               \
+    SET    job_state = 6,              \
+           completed = ${now}          \
+    WHERE  job_id = ${jobId};          \
+";
+
 // JobState.Terminated
 export var initCleanupTmpl = "           \
     UPDATE pgjobber_jobs                 \

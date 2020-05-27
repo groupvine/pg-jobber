@@ -2,13 +2,16 @@ declare var Promise:any;
 declare var require:any;
 declare var module:any;
 
+const DfltJobExpiration_ms = 1000 * 60 * 5;   // 5-min default
+        
 export enum JobState {
     New        = 0,
     Processing = 1,
     Completed  = 2,
     Archived   = 3,
     Failed     = 4,
-    Terminated = 5
+    Terminated = 5,
+    Expired    = 6
 };
 
 import {jobTableTmpl,
@@ -23,6 +26,7 @@ import {jobTableTmpl,
         completeJobTmpl,
         archiveJobTmpl,
         failedJobTmpl,
+        expiredJobTmpl,
         removeJobTmpl}     from './db';
 
 class Jobber {
@@ -298,12 +302,23 @@ class Jobber {
 
         // Register this server as a handler for this jobType
 
-        // TODO: Consider supporting timeouts
-        // by making busyJobs an array of objects of type
-        // busyJobs : [{ jobId : ..., timerId : ...}] 
-        // and adding a timeout_ms to this jobHandlers object
+        // busyJobs is an array of objects of type
+        // busyJobs : [{ jobId : ..., timerId : ...}]
+        // pass in options.timeout_ms of null or 0 to disable, and
+        // leave undefined for default
+
+        let timeout_ms = options.timeout_ms;
+
+        if (timeout_ms === 0 || timeout_ms === null) {
+            // If explicitly set to 0 or null, set to null
+            timeout_ms = null; 
+        } else if (timeout_ms === undefined) {
+            timeout_ms = DfltJobExpiration_ms
+        }
+
         this.jobHandlers[jobType] = {
             cb          : handlerCb,
+            timeout_ms  : timeout_ms,
             busyJobs    : [], 
             maxWorkers  : options.maxWorkers  ? options.maxWorkers  : this.options.maxWorkers,
             maxAttempts : options.maxAttempts ? options.maxAttempts : this.options.maxAttempts
@@ -380,6 +395,7 @@ class Jobber {
 
         case 'doneJob':
         case 'failedJob':
+        case 'expiredJob':
             this.handleDoneJobNotification(notifyData, notifyData.notifyType);
             break;
 
@@ -433,7 +449,7 @@ class Jobber {
             return;
         }
 
-        let busyJobIds = this.jobHandlers[jobType].busyJobs;
+        let busyJobIds = this.jobHandlers[jobType].busyJobs.map( x => x.jobId );
 
         if ( (busyJobIds == null) || (busyJobIds.length === 0) ) {
             // So query doesn't break (0 is an invalid job_id)
@@ -458,6 +474,8 @@ class Jobber {
             throw(msg);
 
         }).then(data => {
+            jobData = data;
+
             if (!data) {
                 // unable to claim a job, just throw a coded exception
                 self.logDebug(`No more ${jobType} jobs, returning`);
@@ -466,10 +484,23 @@ class Jobber {
 
             self.fixDbDates(data);
 
+            let timeout_ms = self.jobHandlers[jobType].timeout_ms;
+
+            let timerId;
+            if (timeout_ms) {
+                timerId = setTimeout( () => {
+                    self.expireJob(jobData);
+                }, timeout_ms);
+            } else {
+                timerId = null;
+            }
+
             // Set job data.  Be sure busyJobs is set before scheduling 
             // new possible jobs so it's excluded from next job query
-            jobData = data;
-            self.jobHandlers[jobType].busyJobs.push(jobData.job_id);
+            self.jobHandlers[jobType].busyJobs.push({
+                jobId   : jobData.job_id,
+                timerId : timerId
+            });
 
             // We got a job, so schedule a check for more concurrent jobs
             self.scheduleWorker(jobType);
@@ -518,8 +549,8 @@ class Jobber {
         }).then( () => {
             // done, try to get another job
             if (jobData) {
-                self.removeFromList(self.jobHandlers[jobType].busyJobs,
-                                    jobData.job_id);
+                self.removeBusyJob(self.jobHandlers[jobType].busyJobs,
+                                   jobData.job_id);
             }
 
             self.scheduleWorker(jobType);
@@ -540,8 +571,8 @@ class Jobber {
                 self.scheduleWorker(jobType);
             } else {
                 self.failedJobCheck(jobType, jobData, jobErr).then( () => {
-                    self.removeFromList(self.jobHandlers[jobType].busyJobs,
-                                        jobData.job_id);
+                    self.removeBusyJob(self.jobHandlers[jobType].busyJobs,
+                                       jobData.job_id);
                     self.scheduleWorker(jobType);
                 }).catch( err => {
                     self.logError(`Error in failedJobCheck()!? ${jobData ? jobData.job_id : '?'}`, err);
@@ -596,13 +627,15 @@ class Jobber {
         self.logDebug(`Rcvd job done for job ${jobId}`);
 
         if (! this.pendingJobs[jobId]) {
-            this.logError(`Rcvd job done (${notifyType}) for job ${jobId} that is not pending for this server ` +
-                          `(perhaps already serviced, or enqueued prior to a server restart?)`);
+            this.logError(`Rcvd job done (${notifyType}) for job ${jobId} that is not pending ` +
+                          `for this server (perhaps already serviced or expired, or enqueued  ` +
+                          ` prior to a server restart?)`);
 
             this.deleteJob(jobId, notifyType);
         } else {
             let cbFunc;
-            if (notifyType === 'failedJob') {
+            if ( (notifyType === 'failedJob' ) || 
+                 (notifyType === 'expiredJob') ) {
                 cbFunc = this.pendingJobs[jobId].reject;
             } else {
                 cbFunc = this.pendingJobs[jobId].resolve;
@@ -632,7 +665,7 @@ class Jobber {
             });
         }
     }
-
+    
     private deleteJob(jobId:number, notifyType:string) {
         if (notifyType === 'failedJob') {
             // Leave 'failed' status as is
@@ -650,6 +683,37 @@ class Jobber {
             jobId : jobId
         });
     }
+    
+    private expireJob(jobData:any) {
+        let self = this;
+
+        // Remove from busy jobs list
+        this.removeBusyJob(this.jobHandlers[jobData.job_type].busyJobs,
+                           jobData.job_id);
+        
+        this.logError(`pg-jobber: expired job: ${JSON.stringify(jobData)}`);
+        
+        this.db.none(expiredJobTmpl, {
+            jobId : jobData.job_id,
+            now   : this.date2Db(new Date())
+        }).then( () => {
+            let jobInfo = {
+                notifyType : 'expiredJob',
+                jobId      : jobData.job_id,
+                jobType    : jobData.job_type,
+                priority   : jobData.priority,
+                state      : JobState.Expired
+            };
+
+            self.db.none(sendNotifyTmpl, {
+                channel : self.serverId2Ch(jobData.requester),
+                info    : JSON.stringify(jobInfo)
+            });
+        }).catch( err => {
+            self.logError("pg-jobber error while expiring a job " +
+                          err.toString(), err);
+        });
+    }
 
     private jobType2Ch(jobType:string) {
         let pool = '';
@@ -663,11 +727,30 @@ class Jobber {
         return `<pgjobber_${serverId}>`;
     }
 
-    private removeFromList(listValue, value) {
-        let index = listValue.indexOf(value);
-        if (index > -1) {
-            listValue.splice(index, 1);
+    private removeBusyJob(jobList:Array<any>, jobId:number) {
+        let index = -1;
+        jobList.every( (x, i) => {
+            if (x.jobId === jobId) {
+                index = i;
+                return false;  // break out
+            } else {
+                return true;   // continue;
+            }
+        });
+
+        if (index === -1) {
+            this.logError(`removeBusyJob, job ${jobId} not found in busy jobs list`);
+            return;
         }
+
+        let jobEntry = jobList[index]
+
+        if (jobEntry.timerId) {
+            clearTimeout(jobEntry.timerId);
+        }
+
+        // Remove from list
+        jobList.splice(index, 1);
     }
 
     //
