@@ -19,6 +19,7 @@ import {jobTableTmpl,
         initCleanupTmpl,
         claimJobTmpl,
         getJobTmpl,
+        activeJobsTmpl,
         completeJobTmpl,
         archiveJobTmpl,
         failedJobTmpl,
@@ -296,9 +297,14 @@ class Jobber {
         }
 
         // Register this server as a handler for this jobType
+
+        // TODO: Consider supporting timeouts
+        // by making busyJobs an array of objects of type
+        // busyJobs : [{ jobId : ..., timerId : ...}] 
+        // and adding a timeout_ms to this jobHandlers object
         this.jobHandlers[jobType] = {
             cb          : handlerCb,
-            busyJobs    : [],
+            busyJobs    : [], 
             maxWorkers  : options.maxWorkers  ? options.maxWorkers  : this.options.maxWorkers,
             maxAttempts : options.maxAttempts ? options.maxAttempts : this.options.maxAttempts
         };
@@ -468,7 +474,7 @@ class Jobber {
             // We got a job, so schedule a check for more concurrent jobs
             self.scheduleWorker(jobType);
 
-            self.logDebug(`Starting ${jobType} job ${jobData.job_id}: ${jobData.instrs}`);
+            self.logDebug(`Starting ${jobType} job ${jobData.job_id}: ${JSON.stringify(jobData.instrs)}`);
 
             // Invoke worker handler to process job
             let res = self.jobHandlers[jobType].cb(jobData.instrs, jobData);
@@ -524,6 +530,8 @@ class Jobber {
                 return;  // couldn't claim a job, so don't reschedule worker
             }
 
+            self.logError(`Error processing job ${jobType} job ${jobData ? jobData.job_id : '?'}: ${JSON.stringify(jobErr)}`);
+
             if (jobErr.message == null) {
                 jobErr = { message : jobErr.toString() };
             }
@@ -540,8 +548,6 @@ class Jobber {
                     throw(err);
                 });
             }
-
-            self.logError(`Error processing job ${jobData ? jobData.job_id : '?'}`, jobErr);
         });
     }
         
@@ -738,6 +744,46 @@ class Jobber {
         } else {
             console.log(msg);
         }
+    }
+
+    // 
+    // Debugging support
+    //
+
+
+    // Attempt to run job, regardless of it's job state or whether another worker
+    // is already processing it, and ignore results
+    dbgAttemptJob(jobId:number) {
+        let self = this;
+
+        let jobType = null;
+        let jobData = null;
+
+        this.db.oneOrNone(getJobTmpl, {
+            jobId : jobId
+        }).then( data => {
+            jobData = data;
+            self.fixDbDates(jobData);
+            jobType = jobData.job_type;
+
+            let res = self.jobHandlers[jobType].cb(jobData.instrs, jobData);
+            if (res.then instanceof Function) {
+                return res; // it's a promise, so return it
+            } else {
+                return Promise.resolve(res);
+            }
+
+        }).then( res => {
+            // Using logInfo to be sure it's printed... dbg function already being invoked
+            self.logInfo(`DEBUG Finished ${jobType} job ${jobData.job_id} with results ${JSON.stringify(res)}`);
+
+        }).catch( err => {
+            self.logError(`DEBUG Caught error for ${jobType} job ${jobData.job_id} with err ${JSON.stringify(err)}`);
+        });
+    }
+
+    dbgActiveJobs() {
+        return this.db.any(activeJobsTmpl, {});
     }
 }
 

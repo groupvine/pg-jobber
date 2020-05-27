@@ -89,6 +89,13 @@ export var getJobTmpl = "              \
     WHERE job_id = ${jobId}            \
 ";
 
+export var activeJobsTmpl = "          \
+   SELECT *                            \
+     FROM pgjobber_jobs                \
+    WHERE started   IS NOT NULL        \
+      AND completed IS NULL            \
+";
+
 // JobState.Completed
 export var completeJobTmpl = "         \
     UPDATE pgjobber_jobs               \
