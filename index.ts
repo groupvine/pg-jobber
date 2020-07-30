@@ -82,18 +82,25 @@ class Jobber {
      *
      * @param {Object} pg - pg-promise database connection object.
      *
-     * @param {Object=} options  - Optional configuration info, with 
-     *     properties: 'logger' {Bunyan compatible logger}; 
-     *     'archiveJobs' {boolean} to archive rather than delete jobs
-     *     from queue when done; 'maxWorkers' {integer} for the default
-     *     maximum number of simultaneous worker processes per job type (defaults to 1); 
-     *     'maxAttempts' {number} for the default maximum number of times to
-     *     attempt jobs when encountering processing errors (defaults to 3); 
-     *     'workerPool' {string} to allow separating job workers into different
-     *     pools (still using same database), e.g., for administrator use, 
-     *     test servers, or a high-volume customer; 'errorHandler(msg, err?)' {function} 
-     *     callback function for errors getting passed an error msg and possibly an 
-     *     Error object.
+     * @param {Object=} options  - Optional configuration info, with properties:
+     *
+     *     logger      {Bunyan compatible logger}
+     *
+     *     archiveJobs {boolean} to archive rather than delete jobs
+     *                 from queue when done; 
+     *     maxWorkers  {integer} for the default maximum number of
+     *                 simultaneous worker processes per job type (defaults to 1)
+     * 
+     *     maxAttempts {number} for the default maximum number of times to attempt
+     *                  jobs when encountering processing errors (defaults to 3)
+     *
+     *     workerPool  {string} to allow separating job workers into different
+     *                 pools (still using same database), e.g., for administrator use, 
+     *                 test servers, or a high-volume customer -- [not well tested, 
+     *                 e.g., problem with notifications from other servers?]
+     *     
+     *     errorHandler(msg, err?) {function} callback function for errors getting 
+     *                  passed an error msg and possibly an Error object.
      *
      * @returns {void}
      */
@@ -148,9 +155,14 @@ class Jobber {
                 // worker handlers
 
                 let chs = Object.keys(_this.jobHandlers);
+                let jobCh;
                 for (let i = 0; i < chs.length; i++) {
+                    jobCh = _this.jobType2Ch(chs[i]);
+                    _this.logDebug(`Registering to listen for new jobs on notify ` +
+                                  `channel ${jobCh}`);
+
                     promises.push(_this.permConn.none(regListenerTmpl, {
-                        channel : _this.jobType2Ch(chs[i])
+                        channel : jobCh
                     }));
                 }
 
@@ -239,8 +251,13 @@ class Jobber {
                 // always stringify payload, so can always JSON.parse()
                 // on reception, regardless of whether original payload
                 // is already a string or not.
+
+                let jobCh = self.jobType2Ch(jobType);
+                self.logDebug(`Sending notify for new job to channel ` +
+                              `${jobCh} data ${JSON.stringify(jobInfo)}`);
+                
                 return self.db.none(sendNotifyTmpl, {
-                    channel : self.jobType2Ch(jobType),
+                    channel : jobCh,
                     info    : JSON.stringify(jobInfo)
                 });
 
@@ -313,7 +330,7 @@ class Jobber {
             // If explicitly set to 0 or null, set to null
             timeout_ms = null; 
         } else if (timeout_ms === undefined) {
-            timeout_ms = DfltJobExpiration_ms
+            timeout_ms = DfltJobExpiration_ms;
         }
 
         this.jobHandlers[jobType] = {
@@ -325,8 +342,12 @@ class Jobber {
         };
 
         if (this.permConn) {
+            let jobCh = this.jobType2Ch(jobType);
+            this.logDebug(`Registering to listen for new jobs on notify ` +
+                          `channel ${jobCh}`);
+            
             this.permConn.none(regListenerTmpl, {
-                channel : this.jobType2Ch(jobType)
+                channel : jobCh
             });
         }
 
@@ -382,7 +403,7 @@ class Jobber {
     }
 
     private handleNotification(notification:any) {
-        // this.logInfo("Received notification: " + JSON.stringify(notification));
+        this.logDebug("Received notification: " + JSON.stringify(notification));
 
         let notifyData = JSON.parse(notification.payload);
 
@@ -716,11 +737,12 @@ class Jobber {
     }
 
     private jobType2Ch(jobType:string) {
-        let pool = '';
         if (this.options.workerPool) {
-            pool = this.options.workerPool + ':';
+            let pool = this.options.workerPool;
+            return `pgjobber_${pool}:${jobType}`;
+        } else {
+            return `pgjobber_${jobType}`;
         }
-        return `pgjobber_${pool}_${jobType}`;
     }
 
     private serverId2Ch(serverId:string) {
@@ -743,7 +765,7 @@ class Jobber {
             return;
         }
 
-        let jobEntry = jobList[index]
+        let jobEntry = jobList[index];
 
         if (jobEntry.timerId) {
             clearTimeout(jobEntry.timerId);
