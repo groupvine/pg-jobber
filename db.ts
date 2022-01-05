@@ -22,7 +22,7 @@ export var jobTableTmpl = `
         instrs    JSONB   NOT NULL,     -- job instructions
         results   JSONB,                -- job results
 
-        job_state INTEGER NOT NULL,     -- 0 pending, 1 in process, 2 completed, 3 archived, 4 failed, 5 terminated
+        job_state INTEGER NOT NULL,     -- 0 pending, 1 in process, 2 completed, 3 archived, 4 failed, 5 terminated, 6 expired
         worker    VARCHAR(64),          -- worker ID, for server-restart job recovery
         attempts  INTEGER DEFAULT 0,    -- number of times job processing has been attempted
 
@@ -72,8 +72,7 @@ export var claimJobTmpl = "            \
            worker    = ${serverId},    \
            attempts  = attempts + 1    \
     FROM   (SELECT job_id as sel_job_id from pgjobber_jobs   \
-             WHERE (job_state = 0              \
-                    OR (job_state = 1 AND worker = ${serverId})) \
+             WHERE job_state = 0               \
               AND  job_id <> ALL(${busyJobIds}) \
               AND  job_type = ${jobType}       \
               ORDER BY priority ASC, sel_job_id ASC  \
@@ -113,7 +112,8 @@ export var removeJobTmpl = "           \
 // JobState.Archived
 export var archiveJobTmpl = "           \
     UPDATE pgjobber_jobs               \
-    SET    job_state = 3               \
+    SET    job_state = 3,              \
+           completed = COALESCE(completed, ${now}) \
     WHERE  job_id = ${jobId};          \
 ";
 
@@ -135,7 +135,7 @@ export var expiredJobTmpl = "          \
 ";
 
 // JobState.Terminated
-export var initCleanupTmpl = "           \
+export var cleanupStaleTmpl = "          \
     UPDATE pgjobber_jobs                 \
     SET    job_state = 5,                \
            completed = ${now},           \
@@ -143,4 +143,11 @@ export var initCleanupTmpl = "           \
     WHERE  worker    = ${serverId} AND   \
            started   < ${startLimit} AND \
            completed IS NULL;            \
+";
+
+export var restartJobTmpl = "            \
+    UPDATE pgjobber_jobs                 \
+    SET    job_state = 0                 \
+    WHERE  worker    = ${serverId} AND   \
+           job_state = 1                 \
 ";

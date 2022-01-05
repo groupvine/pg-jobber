@@ -19,7 +19,8 @@ import {jobTableTmpl,
         newJobTmpl,
         sendNotifyTmpl,
         regListenerTmpl,
-        initCleanupTmpl,
+        cleanupStaleTmpl,
+        restartJobTmpl,
         claimJobTmpl,
         getJobTmpl,
         activeJobsTmpl,
@@ -187,21 +188,37 @@ class Jobber {
     /**
      * Cleanup stale/failed jobs that were started previously on
      * this server.
+     * 
+     * Make the timeout a few hours, to handle the worst-case of a major 
+     # update downtime
      */
 
     private initJobCleanup() {
-        let startLimit = new Date();
-        startLimit.setMinutes(startLimit.getMinutes() - 2); // handles negatives properly
+        return new Promise((resolve) => {
+            let startLimit = new Date();
+            startLimit.setMinutes(startLimit.getMinutes() - (60 * 4)); // handles negatives properly
 
-        let startStr = startLimit.toISOString();
-        let i = startStr.indexOf('.');
-        if (i !== -1) {
-            startStr = startStr.substring(0, i);
-        }
-        return this.db.any(initCleanupTmpl, {
-            serverId   : this.serverId,
-            startLimit : startStr,
-            now        : this.date2Db(new Date())
+            let startStr = startLimit.toISOString();
+            let i = startStr.indexOf('.');
+            if (i !== -1) {
+                startStr = startStr.substring(0, i);
+            }
+            
+            let self = this;
+
+            // Remove/expire stale jobs
+            this.db.any(cleanupStaleTmpl, {
+                serverId   : this.serverId,
+                startLimit : startStr,
+                now        : this.date2Db(new Date())
+            }).then( () => {
+                // Restart jobs that may have been running 
+                return self.db.any(restartJobTmpl, {
+                    serverId   : this.serverId
+                });
+            }).then( () => {
+                resolve();
+            });
         });
     }
 
@@ -701,7 +718,8 @@ class Jobber {
         }
 
         this.db.none(tmpl, {
-            jobId : jobId
+            jobId : jobId,
+            now   : this.date2Db(new Date())
         });
     }
     
