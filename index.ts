@@ -459,7 +459,9 @@ class Jobber {
             return;
         }
 
-        this.logDebug(`Scheduling job ${jobType}`);
+        if (this.isReady) {
+            this.logDebug(`Scheduling job ${jobType}`);
+        }
 
         this.jobTimerIds[jobType] = setTimeout(function() {
             _this.jobTimerIds[jobType] = null;
