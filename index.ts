@@ -30,6 +30,15 @@ import {jobTableTmpl,
         expiredJobTmpl,
         removeJobTmpl}     from './db';
 
+function JSONReplacer(key:string, value:any) {
+    if(value instanceof Uint8Array ){
+  	const enc = new TextDecoder("utf-8");
+  	return(JSON.parse(enc.decode(value)));
+    } else {
+	return value;
+    }
+}
+
 class Jobber {
     serverId    : string;
     options     : any;
@@ -271,7 +280,7 @@ class Jobber {
 
                 let jobCh = self.jobType2Ch(jobType);
                 self.logDebug(`Sending notify for new job to channel ` +
-                              `${jobCh} data ${JSON.stringify(jobInfo)}`);
+                              `${jobCh} data ${JSON.stringify(jobInfo, JSONReplacer)}`);
                 
                 return self.db.none(sendNotifyTmpl, {
                     channel : jobCh,
@@ -420,7 +429,8 @@ class Jobber {
     }
 
     private handleNotification(notification:any) {
-        this.logDebug("Received notification: " + JSON.stringify(notification));
+        this.logDebug("Received notification: " +
+                      JSON.stringify(notification, JSONReplacer));
 
         let notifyData = JSON.parse(notification.payload);
 
@@ -509,7 +519,7 @@ class Jobber {
         }).catch( err => {
             let len = busyJobIds ? busyJobIds.length : '(null busyJobIds)';
             let msg = `Error with server ${self.serverId} trying to claim job type: ${jobType} and ` +
-                `with busyJobIds: ${JSON.stringify(busyJobIds)}; len: ${len}`;
+                `with busyJobIds: ${JSON.stringify(busyJobIds, JSONReplacer)}; len: ${len}`;
             self.logError(msg, err);
             throw(msg);
 
@@ -545,7 +555,7 @@ class Jobber {
             // We got a job, so schedule a check for more concurrent jobs
             self.scheduleWorker(jobType);
 
-            self.logDebug(`Starting ${jobType} job ${jobData.job_id}: ${JSON.stringify(jobData.instrs)}`);
+            self.logDebug(`Starting ${jobType} job ${jobData.job_id}: ${JSON.stringify(jobData.instrs, JSONReplacer)}`);
 
             // Invoke worker handler to process job
             let res = self.jobHandlers[jobType].cb(jobData.instrs, jobData);
@@ -601,7 +611,7 @@ class Jobber {
                 return;  // couldn't claim a job, so don't reschedule worker
             }
 
-            self.logError(`Error processing job ${jobType} job ${jobData ? jobData.job_id : '?'}: ${JSON.stringify(jobErr)}`);
+            self.logError(`Error processing job ${jobType} job ${jobData ? jobData.job_id : '?'}: ${JSON.stringify(jobErr, JSONReplacer)}`);
 
             if (jobErr.message == null) {
                 jobErr = { message : jobErr.toString() };
@@ -732,7 +742,7 @@ class Jobber {
         this.removeBusyJob(this.jobHandlers[jobData.job_type].busyJobs,
                            jobData.job_id);
         
-        this.logError(`pg-jobber: expired job: ${JSON.stringify(jobData)}`);
+        this.logError(`pg-jobber: expired job: ${JSON.stringify(jobData, JSONReplacer)}`);
         
         this.db.none(expiredJobTmpl, {
             jobId : jobData.job_id,
@@ -900,10 +910,10 @@ class Jobber {
 
         }).then( res => {
             // Using logInfo to be sure it's printed... dbg function already being invoked
-            self.logInfo(`DEBUG Finished ${jobType} job ${jobData.job_id} with results ${JSON.stringify(res)}`);
+            self.logInfo(`DEBUG Finished ${jobType} job ${jobData.job_id} with results ${JSON.stringify(res, JSONReplacer)}`);
 
         }).catch( err => {
-            self.logError(`DEBUG Caught error for ${jobType} job ${jobData.job_id} with err ${JSON.stringify(err)}`);
+            self.logError(`DEBUG Caught error for ${jobType} job ${jobData.job_id} with err ${JSON.stringify(err, JSONReplacer)}`);
         });
     }
 
