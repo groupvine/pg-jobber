@@ -30,13 +30,38 @@ import {jobTableTmpl,
         expiredJobTmpl,
         removeJobTmpl}     from './db';
 
-function JSONReplacer(key:string, value:any) {
-    if(value instanceof Uint8Array ){
-  	const enc = new TextDecoder("utf-8");
-  	return(JSON.parse(enc.decode(value)));
-    } else {
-	return value;
+
+function logObjStr(logObj:any) {
+
+    function converter(obj:any) {
+        if (null == obj || "object" !== typeof obj || obj instanceof Date) {
+            return obj;
+        }
+        
+        // Convert Buffer objects to something more readable
+        if (obj instanceof Buffer) {
+            return {
+                type: 'Buffer',
+                string: obj.toString()
+            };
+        }
+        
+        // Arrays
+        if (Array.isArray(obj)) {
+            return obj.map(x => converter(x));
+        }
+
+        // Plain objects
+        if (obj instanceof Object) {
+            Object.keys(obj).map(p => {
+                obj[p] = converter(obj[p]);
+            });
+        }
+
+        return obj;
     }
+
+    return JSON.stringify(logObj);
 }
 
 class Jobber {
@@ -280,7 +305,7 @@ class Jobber {
 
                 let jobCh = self.jobType2Ch(jobType);
                 self.logDebug(`Sending notify for new job to channel ` +
-                              `${jobCh} data ${JSON.stringify(jobInfo, JSONReplacer)}`);
+                              `${jobCh} data ${logObjStr(jobInfo)}`);
                 
                 return self.db.none(sendNotifyTmpl, {
                     channel : jobCh,
@@ -429,8 +454,7 @@ class Jobber {
     }
 
     private handleNotification(notification:any) {
-        this.logDebug("Received notification: " +
-                      JSON.stringify(notification, JSONReplacer));
+        this.logDebug("Received notification: " + logObjStr(notification));
 
         let notifyData = JSON.parse(notification.payload);
 
@@ -519,7 +543,7 @@ class Jobber {
         }).catch( err => {
             let len = busyJobIds ? busyJobIds.length : '(null busyJobIds)';
             let msg = `Error with server ${self.serverId} trying to claim job type: ${jobType} and ` +
-                `with busyJobIds: ${JSON.stringify(busyJobIds, JSONReplacer)}; len: ${len}`;
+                `with busyJobIds: ${logObjStr(busyJobIds)}; len: ${len}`;
             self.logError(msg, err);
             throw(msg);
 
@@ -555,7 +579,7 @@ class Jobber {
             // We got a job, so schedule a check for more concurrent jobs
             self.scheduleWorker(jobType);
 
-            self.logDebug(`Starting ${jobType} job ${jobData.job_id}: ${JSON.stringify(jobData.instrs, JSONReplacer)}`);
+            self.logDebug(`Starting ${jobType} job ${jobData.job_id}: ${logObjStr(jobData.instrs)}`);
 
             // Invoke worker handler to process job
             let res = self.jobHandlers[jobType].cb(jobData.instrs, jobData);
@@ -611,7 +635,7 @@ class Jobber {
                 return;  // couldn't claim a job, so don't reschedule worker
             }
 
-            self.logError(`Error processing job ${jobType} job ${jobData ? jobData.job_id : '?'}: ${JSON.stringify(jobErr, JSONReplacer)}`);
+            self.logError(`Error processing job ${jobType} job ${jobData ? jobData.job_id : '?'}: ${logObjStr(jobErr)}`);
 
             if (jobErr.message == null) {
                 jobErr = { message : jobErr.toString() };
@@ -742,7 +766,7 @@ class Jobber {
         this.removeBusyJob(this.jobHandlers[jobData.job_type].busyJobs,
                            jobData.job_id);
         
-        this.logError(`pg-jobber: expired job: ${JSON.stringify(jobData, JSONReplacer)}`);
+        this.logError(`pg-jobber: expired job: ${logObjStr(jobData)}`);
         
         this.db.none(expiredJobTmpl, {
             jobId : jobData.job_id,
@@ -910,10 +934,10 @@ class Jobber {
 
         }).then( res => {
             // Using logInfo to be sure it's printed... dbg function already being invoked
-            self.logInfo(`DEBUG Finished ${jobType} job ${jobData.job_id} with results ${JSON.stringify(res, JSONReplacer)}`);
+            self.logInfo(`DEBUG Finished ${jobType} job ${jobData.job_id} with results ${logObjStr(res)}`);
 
         }).catch( err => {
-            self.logError(`DEBUG Caught error for ${jobType} job ${jobData.job_id} with err ${JSON.stringify(err, JSONReplacer)}`);
+            self.logError(`DEBUG Caught error for ${jobType} job ${jobData.job_id} with err ${logObjStr(err)}`);
         });
     }
 

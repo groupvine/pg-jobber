@@ -32,5 +32,8 @@
   "dependencies": {
     "pg-promise": "^11.5.0",
     "typescript": "~5.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.3.2"
   }
 }
