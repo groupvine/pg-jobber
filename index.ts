@@ -31,38 +31,6 @@ import {jobTableTmpl,
         removeJobTmpl}     from './db';
 
 
-function logObjStr(logObj:any) {
-
-    function converter(obj:any) {
-        if (null == obj || "object" !== typeof obj || obj instanceof Date) {
-            return obj;
-        }
-        
-        // Convert Buffer objects to something more readable
-        if (obj instanceof Buffer) {
-            return {
-                type: 'Buffer',
-                string: obj.toString()
-            };
-        }
-        
-        // Arrays
-        if (Array.isArray(obj)) {
-            return obj.map(x => converter(x));
-        }
-
-        // Plain objects
-        if (obj instanceof Object) {
-            Object.keys(obj).map(p => {
-                obj[p] = converter(obj[p]);
-            });
-        }
-
-        return obj;
-    }
-
-    return JSON.stringify(logObj);
-}
 
 class Jobber {
     serverId    : string;
@@ -305,7 +273,7 @@ class Jobber {
 
                 let jobCh = self.jobType2Ch(jobType);
                 self.logDebug(`Sending notify for new job to channel ` +
-                              `${jobCh} data ${logObjStr(jobInfo)}`);
+                              `${jobCh} data ${self.logObjStr(jobInfo)}`);
                 
                 return self.db.none(sendNotifyTmpl, {
                     channel : jobCh,
@@ -454,7 +422,7 @@ class Jobber {
     }
 
     private handleNotification(notification:any) {
-        this.logDebug("Received notification: " + logObjStr(notification));
+        this.logDebug("Received notification: " + this.logObjStr(notification));
 
         let notifyData = JSON.parse(notification.payload);
 
@@ -543,7 +511,7 @@ class Jobber {
         }).catch( err => {
             let len = busyJobIds ? busyJobIds.length : '(null busyJobIds)';
             let msg = `Error with server ${self.serverId} trying to claim job type: ${jobType} and ` +
-                `with busyJobIds: ${logObjStr(busyJobIds)}; len: ${len}`;
+                `with busyJobIds: ${self.logObjStr(busyJobIds)}; len: ${len}`;
             self.logError(msg, err);
             throw(msg);
 
@@ -579,7 +547,7 @@ class Jobber {
             // We got a job, so schedule a check for more concurrent jobs
             self.scheduleWorker(jobType);
 
-            self.logDebug(`Starting ${jobType} job ${jobData.job_id}: ${logObjStr(jobData.instrs)}`);
+            self.logDebug(`Starting ${jobType} job ${jobData.job_id}: ${self.logObjStr(jobData.instrs)}`);
 
             // Invoke worker handler to process job
             let res = self.jobHandlers[jobType].cb(jobData.instrs, jobData);
@@ -635,7 +603,7 @@ class Jobber {
                 return;  // couldn't claim a job, so don't reschedule worker
             }
 
-            self.logError(`Error processing job ${jobType} job ${jobData ? jobData.job_id : '?'}: ${logObjStr(jobErr)}`);
+            self.logError(`Error processing job ${jobType} job ${jobData ? jobData.job_id : '?'}: ${self.logObjStr(jobErr)}`);
 
             if (jobErr.message == null) {
                 jobErr = { message : jobErr.toString() };
@@ -766,7 +734,7 @@ class Jobber {
         this.removeBusyJob(this.jobHandlers[jobData.job_type].busyJobs,
                            jobData.job_id);
         
-        this.logError(`pg-jobber: expired job: ${logObjStr(jobData)}`);
+        this.logError(`pg-jobber: expired job: ${this.logObjStr(jobData)}`);
         
         this.db.none(expiredJobTmpl, {
             jobId : jobData.job_id,
@@ -909,6 +877,40 @@ class Jobber {
     // Debugging support
     //
 
+    private logObjStr(logObj:any) {
+
+        function converter(obj:any) {
+            if (null == obj || "object" !== typeof obj || obj instanceof Date) {
+                return obj;
+            }
+            
+            // Convert Buffer objects to something more readable
+            if (obj instanceof Buffer) {
+                return {
+                    type: 'Buffer',
+                    string: obj.toString()
+                };
+            }
+            
+            // Arrays
+            if (Array.isArray(obj)) {
+                return obj.map(x => converter(x));
+            }
+
+            // Plain objects
+            if (obj instanceof Object) {
+                Object.keys(obj).map(p => {
+                    obj[p] = converter(obj[p]);
+                });
+            }
+
+            return obj;
+        }
+
+	logObj = converter(logObj);
+
+        return JSON.stringify(logObj);
+    }
 
     // Attempt to run job, regardless of it's job state or whether another worker
     // is already processing it, and ignore results
@@ -934,10 +936,10 @@ class Jobber {
 
         }).then( res => {
             // Using logInfo to be sure it's printed... dbg function already being invoked
-            self.logInfo(`DEBUG Finished ${jobType} job ${jobData.job_id} with results ${logObjStr(res)}`);
+            self.logInfo(`DEBUG Finished ${jobType} job ${jobData.job_id} with results ${self.logObjStr(res)}`);
 
         }).catch( err => {
-            self.logError(`DEBUG Caught error for ${jobType} job ${jobData.job_id} with err ${logObjStr(err)}`);
+            self.logError(`DEBUG Caught error for ${jobType} job ${jobData.job_id} with err ${self.logObjStr(err)}`);
         });
     }
 
