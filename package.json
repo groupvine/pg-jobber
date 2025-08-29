@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/groupvine/pg-jobber#readme",
   "dependencies": {
-    "pg-promise": "^11.5.0",
+    "pg-promise": "^11.5.5",
     "typescript": "~5.0.2"
   },
   "devDependencies": {
